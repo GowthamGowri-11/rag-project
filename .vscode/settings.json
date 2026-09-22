@@ -1,0 +1,32 @@
+{
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/ai-service",
+    "${workspaceFolder}"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/ai-service",
+    "${workspaceFolder}"
+  ],
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingTypeStubs": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownArgumentType": "none"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.ruff_cache": true,
+    "**/__pycache__": false
+  },
+  "search.exclude": {
+    "**/.ruff_cache": true,
+    "**/node_modules": true
+  }
+}

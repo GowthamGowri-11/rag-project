@@ -1,0 +1,12 @@
+{
+  "include": [
+    "ai-service"
+  ],
+  "extraPaths": [
+    "ai-service"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "pythonVersion": "3.10"
+}

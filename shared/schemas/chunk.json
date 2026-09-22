@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ChunkMetadataAndPayload",
+  "type": "object",
+  "required": ["document_id", "chunk_id", "domain", "document_type", "chunk_strategy", "text"],
+  "properties": {
+    "document_id": { "type": "string" },
+    "chunk_id": { "type": "string" },
+    "domain": { "type": "string" },
+    "document_type": { "type": "string" },
+    "section": { "type": "string" },
+    "page": { "type": "integer" },
+    "chunk_strategy": { "type": "string" },
+    "chunk_size": { "type": "integer" },
+    "overlap": { "type": "integer" },
+    "source_info": {
+      "type": "object",
+      "properties": {
+        "filename": { "type": "string" },
+        "location_label": { "type": "string" }
+      }
+    },
+    "text": { "type": "string" }
+  }
+}

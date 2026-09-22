@@ -1,0 +1,26 @@
+# Adaptive Domain-Aware RAG - Python AI Service Dependencies
+flask>=3.0.0
+flask-cors>=4.0.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# Vector Database
+qdrant-client>=1.8.0
+
+# LLM Integration
+google-genai>=0.1.0
+
+# Evaluation
+ragas>=0.1.0
+
+# Document Parsers
+pypdf>=4.0.0
+python-docx>=1.1.0
+beautifulsoup4>=4.12.0
+markdown>=3.5.0
+
+# Embedding & Reranker (BAAI BGE-M3 and BGE Reranker v2-M3)
+# Note: sentence-transformers or FlagEmbedding can be used when downloading full transformer weights
+# FlagEmbedding>=1.2.0
+# sentence-transformers>=2.3.0

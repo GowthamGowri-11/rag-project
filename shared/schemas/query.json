@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryPipelineSchema",
+  "type": "object",
+  "required": ["query"],
+  "properties": {
+    "query": { "type": "string" },
+    "domain_override": { "type": ["string", "null"] },
+    "retrieval_strategy_override": {
+      "type": ["string", "null"],
+      "enum": ["dense", "sparse", "hybrid", null]
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "top_k_candidates": { "type": "integer" },
+        "top_k_reranked": { "type": "integer" },
+        "min_evidence_threshold": { "type": "number" }
+      }
+    }
+  }
+}

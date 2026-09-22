@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentRepresentation",
+  "type": "object",
+  "required": ["document_id", "filename", "document_type", "raw_text", "metadata"],
+  "properties": {
+    "document_id": { "type": "string" },
+    "filename": { "type": "string" },
+    "document_type": {
+      "type": "string",
+      "enum": ["pdf", "docx", "txt", "markdown", "html", "csv", "json", "code"]
+    },
+    "raw_text": { "type": "string" },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "content"],
+        "properties": {
+          "title": { "type": "string" },
+          "level": { "type": "integer" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "headings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["page_number", "text"],
+        "properties": {
+          "page_number": { "type": "integer" },
+          "text": { "type": "string" }
+        }
+      }
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["headers", "rows"],
+        "properties": {
+          "headers": { "type": "array", "items": { "type": "string" } },
+          "rows": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } },
+          "caption": { "type": "string" }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["domain", "uploaded_at", "file_size_bytes"],
+      "properties": {
+        "domain": { "type": "string" },
+        "uploaded_at": { "type": "string" },
+        "file_size_bytes": { "type": "integer" },
+        "mime_type": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}
