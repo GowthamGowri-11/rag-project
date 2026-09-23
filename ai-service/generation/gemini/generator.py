@@ -30,6 +30,10 @@ class GeminiGenerator:
             logger.warning("No GEMINI_API_KEY configured. Gemini generation will run in mock/grounded-echo mode.")
             return
 
+        if self.api_key.startswith("sk-or-v1-") or self.api_key.startswith("sk-"):
+            logger.info("Configured OpenRouter key with model %s.", self.model)
+            return
+
         try:
             import importlib
             genai_mod = importlib.import_module("google.genai")
@@ -89,13 +93,95 @@ GROUNDED ANSWER (with citations):"""
                 "model_used": f"{self.model} (scaffold/offline mode)"
             }
 
-        # Attempt SDK or REST generation
+        # Check provider type: OpenRouter vs Google Gemini API
+        if self.api_key.startswith("sk-or-v1-") or self.api_key.startswith("sk-"):
+            return self._generate_openrouter(query, prompt, start_time)
+
+        # Attempt Google Gemini SDK or REST generation
+        return self._generate_google_gemini(query, prompt, start_time)
+
+    def _generate_openrouter(self, query: str, prompt: str, start_time: float) -> dict[str, Any]:
+        """Generates grounded answer using OpenRouter API with free-tier resilience."""
+        # Candidate models to try in order of preference (Flash free models first)
+        candidates = [
+            self.model if (":free" in self.model or "/" in self.model) else "inclusionai/ling-3.0-flash-vl:free",
+            "inclusionai/ling-3.0-flash-vl:free",
+            "inclusionai/ling-3.0-flash-sante:free",
+            "liquid/lfm-2.5-2.6b:free",
+            "qwen/qwen3.8-27b:free",
+            "google/gemma-4-26b-a4b-it:free",
+        ]
+
+        # Deduplicate while preserving order
+        models_to_try = []
+        for m in candidates:
+            if m not in models_to_try:
+                models_to_try.append(m)
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Adaptive Domain-Aware RAG",
+        }
+
+        last_error = ""
+        for model_name in models_to_try:
+            try:
+                payload = {
+                    "model": model_name,
+                    "messages": [
+                        {"role": "system", "content": GROUNDED_SYSTEM_INSTRUCTION},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.1,
+                }
+                res = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=15.0
+                )
+                if res.status_code == 200:
+                    data = res.json()
+                    answer_text = data["choices"][0]["message"]["content"]
+                    latency_ms = int((time.time() - start_time) * 1000)
+                    return {
+                        "answer": answer_text,
+                        "latency_ms": latency_ms,
+                        "model_used": f"{model_name} (via OpenRouter Free Tier)"
+                    }
+                else:
+                    last_error = f"Model {model_name} returned status {res.status_code}: {res.text}"
+                    logger.warning(f"OpenRouter model {model_name} failed: {res.status_code}. Trying next free model...")
+            except Exception as e:
+                last_error = str(e)
+                logger.warning(f"Exception calling OpenRouter model {model_name}: {e}. Trying next...")
+
+        latency_ms = int((time.time() - start_time) * 1000)
+        return {
+            "answer": f"Unable to synthesize final answer due to OpenRouter free-tier rate limits: {last_error}",
+            "latency_ms": latency_ms,
+            "model_used": self.model,
+            "error": last_error
+        }
+
+    def _generate_google_gemini(self, query: str, prompt: str, start_time: float) -> dict[str, Any]:
+        """Generates grounded answer using Google Gemini native API / SDK."""
+        # Normalize non-standard model aliases to official Gemini 2.5 Flash
+        gemini_model = self.model
+        if "3.5" in gemini_model or "flash" in gemini_model.lower():
+            if not gemini_model.startswith("gemini-"):
+                gemini_model = "gemini-2.5-flash"
+            elif gemini_model == "gemini-3.5-flash":
+                gemini_model = "gemini-2.5-flash"
+
         client = self._client
         try:
             # 1. New google-genai SDK
             if client is not None and hasattr(client, 'models'):
                 response = client.models.generate_content(
-                    model=self.model,
+                    model=gemini_model,
                     contents=prompt,
                     config={"system_instruction": GROUNDED_SYSTEM_INSTRUCTION}
                 )
@@ -108,7 +194,7 @@ GROUNDED ANSWER (with citations):"""
                 answer_text = response.text
             # 3. Direct Gemini REST endpoint
             else:
-                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={self.api_key}"
                 payload = {
                     "contents": [{
                         "parts": [{"text": f"{GROUNDED_SYSTEM_INSTRUCTION}\n\n{prompt}"}]
@@ -125,15 +211,14 @@ GROUNDED ANSWER (with citations):"""
             return {
                 "answer": answer_text,
                 "latency_ms": latency_ms,
-                "model_used": self.model
+                "model_used": gemini_model
             }
         except Exception as e:  # noqa: BLE001
             logger.error(f"Error calling Gemini API: {e}")
             latency_ms = int((time.time() - start_time) * 1000)
-            # Fail safe: don't hallucinate; return structured error
             return {
                 "answer": f"Unable to synthesize final answer due to Gemini API communication issue: {e!s}",
                 "latency_ms": latency_ms,
-                "model_used": self.model,
+                "model_used": gemini_model,
                 "error": str(e)
             }
