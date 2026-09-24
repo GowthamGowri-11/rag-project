@@ -1,15 +1,22 @@
-import React, { useState, useRef } from 'react';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, Cpu, Layers } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, Cpu, X, Layers, Clock } from 'lucide-react';
 import { uploadDocument } from '../services/api';
 
-export default function DocumentUpload({ domains, onUploadSuccess }) {
+export default function DocumentUpload({ domains = [], onUploadSuccess }) {
   const [file, setFile] = useState(null);
-  const [selectedDomain, setSelectedDomain] = useState(domains[0]?.id || 'rag');
+  const [selectedDomain, setSelectedDomain] = useState('rag');
   const [customDomain, setCustomDomain] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Sync selectedDomain when domains list updates
+  useEffect(() => {
+    if (domains && domains.length > 0 && (!selectedDomain || selectedDomain === 'rag')) {
+      setSelectedDomain(domains[0].id);
+    }
+  }, [domains]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -28,11 +35,22 @@ export default function DocumentUpload({ domains, onUploadSuccess }) {
     }
   };
 
+  const handleClearFile = (e) => {
+    e.stopPropagation();
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file) {
+      setError('Please select a document file to upload.');
+      return;
+    }
 
-    const targetDomain = customDomain.trim() ? customDomain.trim().toLowerCase() : selectedDomain;
+    const domainCandidate = customDomain.trim() || selectedDomain || (domains[0]?.id) || 'rag';
+    const targetDomain = domainCandidate.trim().toLowerCase().replace(/\s+/g, '_');
+
     setIsUploading(true);
     setError(null);
     setUploadResult(null);
@@ -44,149 +62,230 @@ export default function DocumentUpload({ domains, onUploadSuccess }) {
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (onUploadSuccess) onUploadSuccess();
     } catch (err) {
-      setError(err.message);
+      console.error('Upload failed:', err);
+      setError(err.message || 'Upload failed. Check if AI service is running on port 8000.');
     } finally {
       setIsUploading(false);
     }
   };
 
+  const formatBytes = (bytes) => {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="glass-panel" style={{ padding: '32px' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, marginBottom: '8px' }}>
-          Adaptive Document Ingestion
-        </h2>
-        <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-          Upload multi-format documents (PDF, DOCX, TXT, MD, HTML, CSV, JSON, Code). The document analyzer will detect structural characteristics and dynamically select the optimal chunking strategy.
-        </p>
-
-        {error && (
-          <div style={{
-            padding: '12px 16px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--status-danger-bg)',
-            color: 'var(--status-danger)',
-            border: '1px solid var(--status-danger-border)',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <AlertCircle size={18} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          {/* Domain Selection */}
-          <div className="form-group">
-            <label className="form-label">Assign Knowledge Domain *</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <select
-                className="form-select"
-                value={selectedDomain}
-                onChange={(e) => {
-                  setSelectedDomain(e.target.value);
-                  setCustomDomain('');
-                }}
-                disabled={isUploading}
-              >
-                {domains.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    Domain: {d.name} ({d.chunk_count} chunks)
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Or type new domain name..."
-                value={customDomain}
-                onChange={(e) => setCustomDomain(e.target.value)}
-                disabled={isUploading}
-              />
-            </div>
-          </div>
-
-          {/* Drag and Drop Zone */}
-          <div
-            className={`drop-zone ${file ? 'active' : ''}`}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            style={{ marginBottom: '24px' }}
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-              accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.csv,.json,.py,.js,.ts,.java,.cpp,.c,.go,.rs,.sql"
-            />
-            <UploadCloud size={44} color="#818cf8" style={{ margin: '0 auto 12px' }} />
-            <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '6px' }}>
-              {file ? file.name : 'Click to select or drag & drop file'}
-            </h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Supports PDF, DOCX, TXT, Markdown, HTML, CSV, JSON, and Source Code (up to 25MB)
+    <div style={{ maxWidth: '820px', margin: '0 auto' }}>
+      <div className="glass-panel">
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">
+              <UploadCloud size={18} color="var(--primary)" />
+              <span>Adaptive Document Ingestion</span>
+            </h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+              Upload multi-format documents. The analyzer detects structural density and selects the optimal chunking strategy.
             </p>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            className="btn-primary"
-            style={{ width: '100%', padding: '14px', justifyContent: 'center' }}
-            disabled={!file || isUploading}
-          >
-            {isUploading ? (
-              <>
-                <Cpu className="spin-icon" size={18} />
-                <span>Running Document Analyzer & Vector Pipeline...</span>
-              </>
-            ) : (
-              <span>Ingest & Index in Qdrant</span>
-            )}
-          </button>
-        </form>
-
-        {/* Ingestion Results & Telemetry */}
-        {uploadResult && (
-          <div className="glass-panel" style={{ marginTop: '28px', padding: '24px', background: 'rgba(12, 17, 28, 0.7)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <CheckCircle2 size={22} color="#10b981" />
-              <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600 }}>
-                Document Ingestion Complete
-              </h4>
-              <span className="badge badge-answered" style={{ marginLeft: 'auto' }}>
-                READY
-              </span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px 14px', borderRadius: 'var(--radius-sm)' }}>
-                <span className="telemetry-key" style={{ display: 'block', fontSize: '0.75rem' }}>Chunking Strategy</span>
-                <strong style={{ color: 'var(--accent-cyan)' }}>{uploadResult.chunking_strategy}</strong>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px 14px', borderRadius: 'var(--radius-sm)' }}>
-                <span className="telemetry-key" style={{ display: 'block', fontSize: '0.75rem' }}>Total Chunks</span>
-                <strong>{uploadResult.chunk_count} passages</strong>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px 14px', borderRadius: 'var(--radius-sm)' }}>
-                <span className="telemetry-key" style={{ display: 'block', fontSize: '0.75rem' }}>Domain</span>
-                <span className="badge badge-domain">{uploadResult.domain}</span>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px 14px', borderRadius: 'var(--radius-sm)' }}>
-                <span className="telemetry-key" style={{ display: 'block', fontSize: '0.75rem' }}>Pipeline Latency</span>
-                <strong style={{ fontFamily: 'var(--font-mono)' }}>{uploadResult.telemetry?.total_latency_ms}ms</strong>
+        <div className="panel-body">
+          {/* Error Banner */}
+          {error && (
+            <div style={{
+              backgroundColor: 'var(--danger-bg)',
+              border: '1px solid var(--danger-border)',
+              color: 'var(--danger)',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              fontSize: '0.8125rem'
+            }}>
+              <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong>Ingestion Error:</strong> {error}
+                <div style={{ marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Tip: Ensure Python AI service is running on port 8000 and the document is not an empty or unreadable scan.
+                </div>
               </div>
             </div>
+          )}
 
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Embeddings: BGE-M3 (1024-dim dense + sparse) • Target: Qdrant payload indexed on domain
+          <form onSubmit={handleSubmit}>
+            {/* Domain Selection */}
+            <div className="form-group">
+              <label className="form-label">Target Knowledge Domain</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <select
+                  className="form-select"
+                  value={selectedDomain}
+                  onChange={(e) => {
+                    setSelectedDomain(e.target.value);
+                    setCustomDomain('');
+                  }}
+                  disabled={isUploading}
+                >
+                  {domains.length === 0 ? (
+                    <option value="rag">Domain: RAG (Default)</option>
+                  ) : (
+                    domains.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        Domain: {d.name} ({d.chunk_count || 0} chunks)
+                      </option>
+                    ))
+                  )}
+                </select>
+
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Or create new domain (e.g. Legal, Finance)..."
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  disabled={isUploading}
+                />
+              </div>
             </div>
-          </div>
-        )}
+
+            {/* Drop Zone */}
+            <div
+              className={`drop-zone ${file ? 'active' : ''}`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              style={{ marginBottom: '20px' }}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.csv,.json,.py,.js,.ts,.java,.cpp,.c,.go,.rs,.sql"
+              />
+
+              {!file ? (
+                <>
+                  <UploadCloud size={32} color="var(--primary)" style={{ margin: '0 auto 10px' }} />
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    Click to browse or drag & drop files here
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Supported: PDF, DOCX, TXT, Markdown, HTML, CSV, JSON, and Source Code (up to 25MB)
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                  <FileText size={28} color="var(--primary)" />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                      {file.name}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {formatBytes(file.size)} • Ready to ingest
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearFile}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      marginLeft: '12px',
+                      padding: '4px'
+                    }}
+                    title="Remove file"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ width: '100%', padding: '10px', justifyContent: 'center', fontSize: '0.875rem' }}
+              disabled={!file || isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Cpu className="spin-icon" size={16} />
+                  <span>Analyzing, Chunking & Storing in Qdrant...</span>
+                </>
+              ) : (
+                <span>Ingest & Index Document</span>
+              )}
+            </button>
+          </form>
+
+          {/* Success Ingestion Result Card */}
+          {uploadResult && (
+            <div style={{
+              marginTop: '24px',
+              backgroundColor: 'var(--bg-page)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <CheckCircle2 size={18} color="var(--success)" />
+                <strong style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  Document Ingested Successfully
+                </strong>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Strategy Selected</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--info)' }}>
+                    {uploadResult.chunking_strategy}
+                  </div>
+                </div>
+
+                <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Chunks Generated</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                    {uploadResult.chunk_count}
+                  </div>
+                </div>
+
+                <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Target Domain</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                    {uploadResult.domain}
+                  </div>
+                </div>
+
+                <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Total Processing</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--success)' }}>
+                    {uploadResult.telemetry?.total_latency_ms || 0} ms
+                  </div>
+                </div>
+              </div>
+
+              {/* Stage breakdown */}
+              {uploadResult.telemetry && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <span>Parse: {uploadResult.telemetry.load_time_ms}ms</span>
+                  <span>Analyze: {uploadResult.telemetry.analyzer_time_ms}ms</span>
+                  <span>Chunk: {uploadResult.telemetry.chunking_time_ms}ms</span>
+                  <span>Embed (BGE-M3): {uploadResult.telemetry.embedding_time_ms}ms</span>
+                  <span>Qdrant Store: {uploadResult.telemetry.storage_time_ms}ms</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

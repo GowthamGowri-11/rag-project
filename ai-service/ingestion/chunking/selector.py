@@ -59,6 +59,12 @@ class AdaptiveChunkingSelector:
         strategy_name, strategy, config = self.select_strategy(profile)
         chunks = strategy.chunk(doc, chunk_size=config["chunk_size"], overlap=config["overlap"])
 
+        # Fallback if specialized strategy produced 0 chunks but raw text exists
+        if not chunks and doc.raw_text and doc.raw_text.strip():
+            fallback_strategy = self.STRATEGIES["fixed-size"]
+            chunks = fallback_strategy.chunk(doc, chunk_size=config.get("chunk_size", 500), overlap=config.get("overlap", 50))
+            strategy_name = "fixed-size"
+
         metadata = {
             "strategy_used": strategy_name,
             "chunk_count": len(chunks),

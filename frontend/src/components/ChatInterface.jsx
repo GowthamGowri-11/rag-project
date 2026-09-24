@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Send, ShieldAlert, CheckCircle, Activity, BookOpen, Layers, Terminal, Sparkles, Filter } from 'lucide-react';
+import { Send, ShieldAlert, CheckCircle2, BookOpen, Filter, Trash2, ChevronDown, ChevronUp, Cpu } from 'lucide-react';
 import { queryRAG } from '../services/api';
 
-export default function ChatInterface({ domains }) {
+export default function ChatInterface({ domains = [] }) {
   const [queryText, setQueryText] = useState('');
   const [domainOverride, setDomainOverride] = useState('');
   const [strategyOverride, setStrategyOverride] = useState('');
   const [loading, setLoading] = useState(false);
+  const [expandedSources, setExpandedSources] = useState({});
+  const [expandedTelemetry, setExpandedTelemetry] = useState({});
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -17,7 +19,27 @@ export default function ChatInterface({ domains }) {
       telemetry: null
     }
   ]);
-  const [activeTelemetry, setActiveTelemetry] = useState(null);
+
+  const toggleSources = (msgId) => {
+    setExpandedSources((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
+  };
+
+  const toggleTelemetry = (msgId) => {
+    setExpandedTelemetry((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
+  };
+
+  const handleClear = () => {
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'assistant',
+        status: 'READY',
+        text: 'Chat history cleared. System ready for queries.',
+        sources: [],
+        telemetry: null
+      }
+    ]);
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -55,7 +77,6 @@ export default function ChatInterface({ domains }) {
       };
 
       setMessages((prev) => [...prev, aiMsg]);
-      setActiveTelemetry(response.telemetry);
     } catch (err) {
       const errorMsg = {
         id: `err_${Date.now()}`,
@@ -72,17 +93,17 @@ export default function ChatInterface({ domains }) {
   };
 
   return (
-    <div className="chat-layout">
-      {/* Chat Conversation Area */}
-      <div className="glass-panel chat-main">
-        {/* Chat Header Filters */}
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Filter size={14} /> Scope:
+    <div className="chat-container">
+      {/* Top Filter & Action Bar */}
+      <div className="chat-toolbar">
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Filter size={13} /> Scope:
           </span>
+
           <select
             className="form-select"
-            style={{ padding: '6px 10px', fontSize: '0.8rem', width: 'auto' }}
+            style={{ width: 'auto', padding: '4px 8px', fontSize: '0.78rem' }}
             value={domainOverride}
             onChange={(e) => setDomainOverride(e.target.value)}
           >
@@ -94,197 +115,216 @@ export default function ChatInterface({ domains }) {
 
           <select
             className="form-select"
-            style={{ padding: '6px 10px', fontSize: '0.8rem', width: 'auto' }}
+            style={{ width: 'auto', padding: '4px 8px', fontSize: '0.78rem' }}
             value={strategyOverride}
             onChange={(e) => setStrategyOverride(e.target.value)}
           >
-            <option value="">Adaptive Retrieval (Auto)</option>
-            <option value="dense">Dense Vector Only</option>
-            <option value="sparse">Sparse Lexical Only</option>
-            <option value="hybrid">Hybrid Fusion</option>
+            <option value="">Retrieval: Adaptive (Auto)</option>
+            <option value="dense">Dense Vector Retrieval</option>
+            <option value="sparse">Sparse Lexical Retrieval</option>
+            <option value="hybrid">Hybrid Fusion Retrieval</option>
           </select>
         </div>
 
-        {/* Message List */}
-        <div className="chat-messages">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`message-bubble ${m.role === 'user' ? 'message-user' : 'message-ai'}`}
-              onClick={() => m.telemetry && setActiveTelemetry(m.telemetry)}
-            >
-              {/* AI Metadata Tags */}
-              {m.role === 'assistant' && m.status && m.id !== 'welcome' && (
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  {m.status === 'ANSWERED' ? (
-                    <span className="badge badge-answered">
-                      <CheckCircle size={12} /> ANSWERED (GROUNDED)
-                    </span>
-                  ) : m.status === 'NO_EVIDENCE' ? (
-                    <span className="badge badge-no-evidence">
-                      <ShieldAlert size={12} /> NO_EVIDENCE (LLM REFUSED)
-                    </span>
-                  ) : (
-                    <span className="badge badge-failed">{m.status}</span>
-                  )}
-
-                  {m.domain && (
-                    <span className="badge badge-domain">
-                      Domain: {m.domain}
-                    </span>
-                  )}
-
-                  {m.strategy && (
-                    <span className="badge badge-strategy">
-                      {m.strategy.toUpperCase()}
-                    </span>
-                  )}
-
-                  {m.telemetry && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>
-                      {m.telemetry.total_query_latency_ms}ms
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Message Body */}
-              <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.92rem' }}>{m.text}</div>
-
-              {/* Gate Reason on Refusal */}
-              {m.gateReason && (
-                <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--status-warning)', fontStyle: 'italic' }}>
-                  Evidence Gate: {m.gateReason}
-                </div>
-              )}
-
-              {/* Sources Accordion */}
-              {m.sources && m.sources.length > 0 && (
-                <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <BookOpen size={14} color="#818cf8" /> Retransmitted Sources ({m.sources.length}):
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {m.sources.map((src, idx) => (
-                      <div key={idx} className="citation-box">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                          <span>{src.document_name}</span>
-                          <span style={{ color: 'var(--accent-cyan)' }}>
-                            {src.relevance_score ? `Score: ${(src.relevance_score).toFixed(2)}` : ''}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          {src.page ? `Page ${src.page} • ` : ''}
-                          {src.section ? `Section: ${src.section} • ` : ''}
-                          Domain: {src.domain}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {loading && (
-            <div className="message-bubble message-ai" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Sparkles size={18} color="#818cf8" className="spin-icon" />
-              <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                Executing Query Analyzer → Retrieval Router → Reranker → Evidence Gate...
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Input Bar */}
-        <form onSubmit={handleSend} className="chat-input-box">
-          <input
-            type="text"
-            className="query-input"
-            placeholder="Ask a question grounded exclusively in your indexed documents..."
-            value={queryText}
-            onChange={(e) => setQueryText(e.target.value)}
-            disabled={loading}
-          />
-          <button type="submit" className="btn-primary" disabled={!queryText.trim() || loading}>
-            <Send size={16} />
-            <span>Send</span>
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={handleClear}
+          className="btn-secondary"
+          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+          title="Clear conversation"
+        >
+          <Trash2 size={13} />
+          <span>Clear Chat</span>
+        </button>
       </div>
 
-      {/* Inspector / Observability Sidebar */}
-      <div className="glass-panel inspector-panel">
-        <h3 className="panel-title">
-          <Activity size={18} color="#06b6d4" />
-          Execution Telemetry
-        </h3>
-
-        {activeTelemetry ? (
-          <div>
-            <div style={{ marginBottom: '16px' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Evidence Status</span>
-              <div style={{ marginTop: '4px' }}>
-                {activeTelemetry.evidence_status === 'PASS' ? (
-                  <span className="badge badge-answered">PASS - Grounded Generation</span>
-                ) : (
-                  <span className="badge badge-no-evidence">FAIL - LLM Inhibited</span>
-                )}
+      {/* Messages Stream */}
+      <div className="chat-messages">
+        {messages.map((msg) => {
+          if (msg.role === 'user') {
+            return (
+              <div key={msg.id} className="message-user">
+                {msg.text}
               </div>
-            </div>
+            );
+          }
 
-            <div className="telemetry-row">
-              <span className="telemetry-key">Retrieval Mode</span>
-              <span className="telemetry-val">{activeTelemetry.retrieval_strategy}</span>
-            </div>
+          // Assistant Message
+          const isAnswered = msg.status === 'ANSWERED';
+          const isRefused = msg.status === 'NO_EVIDENCE';
+          const isFailed = msg.status === 'FAILED';
 
-            <div className="telemetry-row">
-              <span className="telemetry-key">Detected Domain</span>
-              <span className="telemetry-val">{activeTelemetry.domain_detected || 'Global'}</span>
-            </div>
+          return (
+            <div key={msg.id} className="message-assistant">
+              {/* Header Badge */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {isAnswered && (
+                    <span className="badge badge-success">
+                      <CheckCircle2 size={12} /> Grounded Answer
+                    </span>
+                  )}
+                  {isRefused && (
+                    <span className="badge badge-warning">
+                      <ShieldAlert size={12} /> Strict Refusal (Zero Hallucination)
+                    </span>
+                  )}
+                  {isFailed && (
+                    <span className="badge badge-danger">
+                      Pipeline Error
+                    </span>
+                  )}
+                  {msg.status === 'READY' && (
+                    <span className="badge badge-neutral">System Ready</span>
+                  )}
 
-            <div className="telemetry-row">
-              <span className="telemetry-key">Candidate Chunks</span>
-              <span className="telemetry-val">{activeTelemetry.candidate_count}</span>
-            </div>
+                  {msg.domain && (
+                    <span className="badge badge-neutral">Domain: {msg.domain}</span>
+                  )}
+                  {msg.strategy && (
+                    <span className="badge badge-info">{msg.strategy}</span>
+                  )}
+                </div>
+              </div>
 
-            <div className="telemetry-row">
-              <span className="telemetry-key">Evidence Score</span>
-              <span className="telemetry-val">{(activeTelemetry.evidence_score).toFixed(3)}</span>
-            </div>
+              {/* Body Text */}
+              <div style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+                {msg.text}
+              </div>
 
-            <div className="telemetry-row">
-              <span className="telemetry-key">Retrieval Latency</span>
-              <span className="telemetry-val">{activeTelemetry.retrieval_latency_ms}ms</span>
-            </div>
+              {/* Sources Toggle & Content */}
+              {msg.sources && msg.sources.length > 0 && (
+                <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-muted)', paddingTop: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSources(msg.id)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--info)',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <BookOpen size={13} />
+                    <span>Supporting Sources ({msg.sources.length})</span>
+                    {expandedSources[msg.id] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
 
-            <div className="telemetry-row">
-              <span className="telemetry-key">Reranking Latency</span>
-              <span className="telemetry-val">{activeTelemetry.reranking_latency_ms}ms</span>
-            </div>
+                  {expandedSources[msg.id] && (
+                    <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {msg.sources.map((s, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '6px 10px',
+                            backgroundColor: 'var(--bg-surface)',
+                            border: '1px solid var(--border-muted)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.75rem',
+                            display: 'flex',
+                            justifyContent: 'space-between'
+                          }}
+                        >
+                          <div>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.document_name}</span>
+                            {s.page && <span style={{ marginLeft: '6px', color: 'var(--text-secondary)' }}>p. {s.page}</span>}
+                            {s.section && <span style={{ marginLeft: '6px', color: 'var(--text-secondary)' }}>§ {s.section}</span>}
+                          </div>
+                          <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
+                            Score: {(s.relevance_score || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-            <div className="telemetry-row">
-              <span className="telemetry-key">LLM Generation</span>
-              <span className="telemetry-val">{activeTelemetry.llm_latency_ms}ms</span>
-            </div>
+              {/* Telemetry Toggle & Content */}
+              {msg.telemetry && (
+                <div style={{ marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleTelemetry(msg.id)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.72rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>Inspect Pipeline Latency & Gates</span>
+                    {expandedTelemetry[msg.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  </button>
 
-            <div className="telemetry-row" style={{ borderTop: '1px solid var(--border-card)', marginTop: '8px', paddingTop: '10px' }}>
-              <span className="telemetry-key" style={{ fontWeight: 600 }}>Total Pipeline</span>
-              <span className="telemetry-val" style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
-                {activeTelemetry.total_query_latency_ms}ms
-              </span>
+                  {expandedTelemetry[msg.id] && (
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '8px 10px',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-default)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.72rem',
+                      display: 'flex',
+                      gap: '12px',
+                      flexWrap: 'wrap',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <span>Model: <strong>gemini-3.5-flash</strong></span>
+                      <span>Total: <strong>{msg.telemetry.total_query_latency_ms}ms</strong></span>
+                      <span>Retrieve: <strong>{msg.telemetry.retrieval_latency_ms}ms</strong></span>
+                      <span>Rerank: <strong>{msg.telemetry.reranking_latency_ms}ms</strong></span>
+                      <span>Candidates: <strong>{msg.telemetry.candidate_count}</strong></span>
+                      <span>Gate Score: <strong>{(msg.telemetry.evidence_score || 0).toFixed(2)}</strong></span>
+                      <span>LLM: <strong>{msg.telemetry.llm_latency_ms}ms</strong></span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+          );
+        })}
 
-            <div style={{ marginTop: '20px', padding: '12px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Anti-hallucination verification: Reranker confidence and evidence density are strictly checked before any prompt is passed to Gemini 3.5 Flash.
-            </div>
-          </div>
-        ) : (
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: '40px' }}>
-            Submit a query to inspect live pipeline latency, domain matching, candidate counts, and evidence gate decisions.
+        {loading && (
+          <div className="message-assistant" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Cpu className="spin-icon" size={16} color="var(--primary)" />
+            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+              Executing retrieval router, cross-encoder reranker, and evidence gate...
+            </span>
           </div>
         )}
       </div>
+
+      {/* Input Field */}
+      <form onSubmit={handleSend} className="chat-input-area">
+        <input
+          type="text"
+          className="form-input"
+          style={{ flex: 1 }}
+          placeholder="Ask a question strictly grounded in uploaded knowledge..."
+          value={queryText}
+          onChange={(e) => setQueryText(e.target.value)}
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          className="btn-primary"
+          disabled={!queryText.trim() || loading}
+          style={{ padding: '8px 16px' }}
+        >
+          <Send size={14} />
+          <span>Ask</span>
+        </button>
+      </form>
     </div>
   );
 }

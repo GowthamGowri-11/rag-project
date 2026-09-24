@@ -86,6 +86,12 @@ def get_domains():
     qdrant_domains = vector_store.list_domains()
     q_dict = {d["name"].lower(): d["chunk_count"] for d in qdrant_domains}
 
+    # Auto-register any domains present in Qdrant payloads
+    for d in qdrant_domains:
+        d_name = d["name"].lower()
+        if d_name and d_name not in dynamic_domains_registry:
+            dynamic_domains_registry[d_name] = f"Domain for {d_name.capitalize()}"
+
     combined = []
     for d_key, desc in dynamic_domains_registry.items():
         count = q_dict.get(d_key, 0)
@@ -164,37 +170,41 @@ def ingest_document():
 
     logger.info(f"Ingesting document '{filename}' into domain '{domain}'...")
 
-    # Stage 1: Load and parse document into normalized DocumentRepresentation
-    t_load_start = time.time()
-    doc = load_document(file_bytes, filename, domain)
-    t_load_ms = int((time.time() - t_load_start) * 1000)
+    try:
+        # Stage 1: Load and parse document into normalized DocumentRepresentation
+        t_load_start = time.time()
+        doc = load_document(file_bytes, filename, domain)
+        t_load_ms = int((time.time() - t_load_start) * 1000)
 
-    # Stage 2: Document Analyzer
-    t_ana_start = time.time()
-    profile = doc_analyzer.analyze(doc)
-    t_ana_ms = int((time.time() - t_ana_start) * 1000)
+        # Stage 2: Document Analyzer
+        t_ana_start = time.time()
+        profile = doc_analyzer.analyze(doc)
+        t_ana_ms = int((time.time() - t_ana_start) * 1000)
 
-    # Stage 3: Adaptive Chunking Selector
-    t_chunk_start = time.time()
-    strategy_name, chunks, _chunk_meta = chunking_selector.chunk_document(doc, profile)
-    t_chunk_ms = int((time.time() - t_chunk_start) * 1000)
+        # Stage 3: Adaptive Chunking Selector
+        t_chunk_start = time.time()
+        strategy_name, chunks, _chunk_meta = chunking_selector.chunk_document(doc, profile)
+        t_chunk_ms = int((time.time() - t_chunk_start) * 1000)
 
-    if not chunks:
-        return jsonify({"error": "Failed to extract chunks from document"}), 422
+        if not chunks:
+            return jsonify({"error": "Failed to extract readable text from document. Ensure the file contains text and is not empty."}), 422
 
-    # Stage 4: Generate BGE-M3 Embeddings
-    t_embed_start = time.time()
-    chunk_texts = [c.text for c in chunks]
-    dense_vecs = embedding_service.embed_dense(chunk_texts)
-    sparse_vecs = embedding_service.embed_sparse(chunk_texts)
-    t_embed_ms = int((time.time() - t_embed_start) * 1000)
+        # Stage 4: Generate BGE-M3 Embeddings
+        t_embed_start = time.time()
+        chunk_texts = [c.text for c in chunks]
+        dense_vecs = embedding_service.embed_dense(chunk_texts)
+        sparse_vecs = embedding_service.embed_sparse(chunk_texts)
+        t_embed_ms = int((time.time() - t_embed_start) * 1000)
 
-    # Stage 5: Store in Qdrant with Domain Metadata
-    t_store_start = time.time()
-    vector_store.upsert_chunks(chunks, dense_vecs, sparse_vecs)
-    t_store_ms = int((time.time() - t_store_start) * 1000)
+        # Stage 5: Store in Qdrant with Domain Metadata
+        t_store_start = time.time()
+        vector_store.upsert_chunks(chunks, dense_vecs, sparse_vecs)
+        t_store_ms = int((time.time() - t_store_start) * 1000)
 
-    total_latency_ms = int((time.time() - start_time) * 1000)
+        total_latency_ms = int((time.time() - start_time) * 1000)
+    except Exception as e:
+        logger.exception(f"Error ingesting document '{filename}': {e}")
+        return jsonify({"error": f"Ingestion error: {e!s}"}), 500
 
     # Track in registry
     doc_info = {

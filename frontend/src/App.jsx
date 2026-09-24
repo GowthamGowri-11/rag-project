@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Layers, UploadCloud, MessageSquare, FileText, Shield, Activity, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Layers, UploadCloud, MessageSquare, FileText, Shield, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import DomainsManager from './components/DomainsManager';
 import DocumentUpload from './components/DocumentUpload';
@@ -33,9 +33,12 @@ export default function App() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 15000); // 15s poll for background indexing sync
+    const interval = setInterval(loadData, 12000);
     return () => clearInterval(interval);
   }, []);
+
+  const isGatewayConnected = health?.gateway;
+  const isAiServiceOnline = health?.ai_service?.status === 'HEALTHY';
 
   return (
     <div className="app-container">
@@ -43,7 +46,7 @@ export default function App() {
       <header className="header">
         <div className="logo-area">
           <div className="logo-icon-box">
-            <Shield size={24} />
+            <Shield size={20} />
           </div>
           <div>
             <h1 className="title-primary">Adaptive Domain-Aware RAG</h1>
@@ -51,46 +54,68 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Health Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Gateway Status Badge */}
+          <div className={`badge ${isGatewayConnected ? 'badge-success' : 'badge-danger'}`}>
             <span style={{
-              width: '8px',
-              height: '8px',
+              width: '6px',
+              height: '6px',
               borderRadius: '50%',
-              backgroundColor: health?.status === 'HEALTHY' ? '#10b981' : '#f59e0b'
+              backgroundColor: isGatewayConnected ? 'var(--success)' : 'var(--danger)'
             }} />
-            <span>{health?.status === 'HEALTHY' ? 'Gateway Connected' : 'Checking System...'}</span>
+            <span>Gateway: {isGatewayConnected ? 'Port 5000' : 'Disconnected'}</span>
+          </div>
+
+          {/* AI Engine Status Badge */}
+          <div className={`badge ${isAiServiceOnline ? 'badge-success' : 'badge-warning'}`}>
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: isAiServiceOnline ? 'var(--success)' : 'var(--warning)'
+            }} />
+            <span>AI Service: {isAiServiceOnline ? 'Port 8000' : 'Offline'}</span>
           </div>
 
           <button
             onClick={loadData}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '6px 10px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.8rem'
-            }}
-            title="Refresh state"
+            className="btn-secondary"
+            style={{ padding: '5px 8px' }}
+            title="Refresh status"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={13} />
           </button>
         </div>
       </header>
 
+      {/* AI Service Offline Warning Banner */}
+      {!isAiServiceOnline && !loading && (
+        <div style={{
+          backgroundColor: 'var(--warning-bg)',
+          border: '1px solid var(--warning-border)',
+          color: 'var(--warning)',
+          padding: '10px 16px',
+          borderRadius: 'var(--radius-sm)',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '0.8125rem'
+        }}>
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <span>
+            <strong>AI Service Unreachable:</strong> Start the Python service in terminal with <code>cd ai-service; python app.py</code> to enable document uploads and grounded chat.
+          </span>
+        </div>
+      )}
+
       {/* Navigation Tabs */}
-      <nav className="nav-tabs" style={{ marginBottom: '24px' }}>
+      <nav className="nav-tabs">
         <button
           className={`nav-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
           onClick={() => setActiveTab('dashboard')}
         >
-          <LayoutDashboard size={16} />
+          <LayoutDashboard size={15} />
           <span>Dashboard</span>
         </button>
 
@@ -98,7 +123,7 @@ export default function App() {
           className={`nav-tab-btn ${activeTab === 'domains' ? 'active' : ''}`}
           onClick={() => setActiveTab('domains')}
         >
-          <Layers size={16} />
+          <Layers size={15} />
           <span>Domains ({domains.length})</span>
         </button>
 
@@ -106,15 +131,15 @@ export default function App() {
           className={`nav-tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
           onClick={() => setActiveTab('upload')}
         >
-          <UploadCloud size={16} />
-          <span>Ingestion Pipeline</span>
+          <UploadCloud size={15} />
+          <span>Ingestion</span>
         </button>
 
         <button
           className={`nav-tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
           onClick={() => setActiveTab('chat')}
         >
-          <MessageSquare size={16} />
+          <MessageSquare size={15} />
           <span>Grounded Chat</span>
         </button>
 
@@ -122,12 +147,12 @@ export default function App() {
           className={`nav-tab-btn ${activeTab === 'documents' ? 'active' : ''}`}
           onClick={() => setActiveTab('documents')}
         >
-          <FileText size={16} />
+          <FileText size={15} />
           <span>Repository ({documents.length})</span>
         </button>
       </nav>
 
-      {/* Main View Area */}
+      {/* Main View Display */}
       <main>
         {activeTab === 'dashboard' && (
           <Dashboard

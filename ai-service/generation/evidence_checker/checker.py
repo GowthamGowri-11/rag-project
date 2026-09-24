@@ -38,18 +38,7 @@ class EvidenceChecker:
                 reason=f"Top candidate evidence score ({max_score:.2f}) is below the strict sufficiency threshold ({self.threshold:.2f})."
             )
 
-        # 3. Term coverage check for explicit entities in query
-        q_words = [w for w in query.lower().split() if len(w) > 3]
-        combined_text = " ".join([c.get("text", "").lower() for c in optimized_chunks[:3]])
-        matched_words = sum(1 for w in q_words if w in combined_text)
-        coverage_ratio = matched_words / max(len(q_words), 1)
 
-        if coverage_ratio < 0.25 and len(q_words) >= 3:
-            return EvidenceGateCheck(
-                is_sufficient=False,
-                confidence_score=round(max_score, 4),
-                reason=f"Evidence text lacks essential keyword coverage ({coverage_ratio:.1%}) for the query."
-            )
 
         # Sufficient evidence confirmed
         return EvidenceGateCheck(

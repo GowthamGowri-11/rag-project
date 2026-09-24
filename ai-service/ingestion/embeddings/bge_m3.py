@@ -39,43 +39,29 @@ class BGEM3EmbeddingService:
         if not texts:
             return []
 
-        if self._is_native_loaded and self._model:
-            try:
-                output = self._model.encode(texts, return_dense=True, return_sparse=False)
-                return output['dense_vecs'].tolist()
-            except Exception as e:  # noqa: BLE001
-                logger.error(f"Error during native BGE-M3 dense encoding: {e}. Falling back to deterministic vector.")
+        if not self._is_native_loaded or not self._model:
+            raise RuntimeError("BGE-M3 model is UNAVAILABLE. Fake/deterministic embeddings are forbidden in production.")
 
-        # Deterministic 1024-dim normalized embedding fallback
-        results = []
-        for text in texts:
-            results.append(self._generate_deterministic_vector(text))
-        return results
+        try:
+            output = self._model.encode(texts, return_dense=True, return_sparse=False)
+            return output['dense_vecs'].tolist()
+        except Exception as e:
+            raise RuntimeError(f"Error during real BGE-M3 dense encoding: {e}")
 
     def embed_sparse(self, texts: list[str]) -> list[dict[int, float]]:
         """Compute lexical sparse token weights for hybrid retrieval."""
         if not texts:
             return []
 
-        if self._is_native_loaded and self._model:
-            try:
-                output = self._model.encode(texts, return_dense=False, return_sparse=True)
-                sparse_vecs = output['lexical_weights']
-                return [{int(k): float(v) for k, v in sv.items()} for sv in sparse_vecs]
-            except Exception as e:  # noqa: BLE001
-                logger.error(f"Error during native BGE-M3 sparse encoding: {e}. Falling back to token frequency.")
+        if not self._is_native_loaded or not self._model:
+            raise RuntimeError("BGE-M3 model is UNAVAILABLE. Fake/deterministic sparse embeddings are forbidden in production.")
 
-        # Deterministic bag-of-words sparse weights
-        results = []
-        for text in texts:
-            token_weights: dict[int, float] = {}
-            words = text.lower().split()
-            for w in words:
-                # Hash token to int index modulo 30000 (typical vocabulary size)
-                token_hash = int(hashlib.md5(w.encode('utf-8')).hexdigest()[:6], 16) % 30000
-                token_weights[token_hash] = token_weights.get(token_hash, 0.0) + 1.0
-            results.append(token_weights)
-        return results
+        try:
+            output = self._model.encode(texts, return_dense=False, return_sparse=True)
+            sparse_vecs = output['lexical_weights']
+            return [{int(k): float(v) for k, v in sv.items()} for sv in sparse_vecs]
+        except Exception as e:
+            raise RuntimeError(f"Error during real BGE-M3 sparse encoding: {e}")
 
     def embed_query(self, query: str) -> dict[str, Any]:
         """Returns both dense and sparse representations for a user query."""
