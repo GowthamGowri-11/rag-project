@@ -43,7 +43,7 @@ class DocxLoader(BaseDocumentLoader):
                     if not text:
                         continue
                     raw_text_parts.append(text)
-                    if p.style.name.startswith("Heading"):
+                    if p.style and p.style.name and p.style.name.startswith("Heading"):
                         if current_section_lines:
                             sections.append(DocumentSection(
                                 title=current_section_title,

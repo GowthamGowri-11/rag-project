@@ -49,7 +49,8 @@ reranker_service = BGERerankerService(
 )
 gemini_generator = GeminiGenerator(
     api_key=config.GEMINI_API_KEY,
-    model=config.GEMINI_MODEL
+    model=config.GEMINI_MODEL,
+    provider=config.LLM_PROVIDER
 )
 doc_analyzer = DocumentAnalyzer()
 chunking_selector = AdaptiveChunkingSelector()

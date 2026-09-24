@@ -16,22 +16,24 @@ CRITICAL CONSTRAINTS:
 4. Every fact in your answer must cite its supporting source using the format: [Source: <filename>, Page: <page>, Section: <section>].
 5. Maintain a professional, concise, and direct tone."""
 
-class GeminiGenerator:
-    """Client for generating grounded answers using Gemini 3.5 Flash."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
-        self.api_key = api_key
+class GeminiGenerator:
+    """Client for generating grounded answers strictly using Google Gemini API."""
+
+    def __init__(self, api_key: str, model: str = "gemini-3.5-flash", provider: str = "gemini"):
+        self.api_key = (api_key or "").strip()
         self.model = model
+        self.provider = (provider or "gemini").strip().lower()
         self._client: Any = None
         self._init_sdk()
 
     def _init_sdk(self):
-        if not self.api_key:
-            logger.warning("No GEMINI_API_KEY configured. Gemini generation will run in mock/grounded-echo mode.")
+        if self.provider != "gemini":
+            logger.info("LLM provider configured as '%s'.", self.provider)
             return
 
-        if self.api_key.startswith("sk-or-v1-") or self.api_key.startswith("sk-"):
-            logger.info("Configured OpenRouter key with model %s.", self.model)
+        if not self.api_key:
+            logger.warning("No GEMINI_API_KEY configured.")
             return
 
         try:
@@ -47,12 +49,12 @@ class GeminiGenerator:
                 legacy_genai = importlib.import_module("google.generativeai")
                 legacy_genai.configure(api_key=self.api_key)
                 self._client = legacy_genai.GenerativeModel(self.model)
-                logger.info("Initialized legacy google.generativeai client.")
+                logger.info("Initialized legacy google.generativeai client for model %s.", self.model)
             except Exception:  # noqa: BLE001
-                logger.info("google-genai library not present. Will use direct Gemini REST API.")
+                logger.info("Google GenAI SDK not installed. Will use direct Google Gemini REST API.")
 
     def generate(self, query: str, evidence_chunks: list[dict[str, Any]]) -> dict[str, Any]:
-        """Generates a grounded response strictly from evidence chunks."""
+        """Generates a grounded response strictly from evidence chunks using Google Gemini API."""
         start_time = time.time()
 
         # Format evidence block
@@ -79,109 +81,48 @@ USER QUESTION:
 
 GROUNDED ANSWER (with citations):"""
 
-        # If no API key is provided, return grounded synthesis mock
-        if not self.api_key or self.api_key.startswith("your_"):
+        # Enforce explicit provider
+        if self.provider != "gemini":
             latency_ms = int((time.time() - start_time) * 1000)
-            mock_answer = (
-                f"Based on the retrieved evidence ({evidence_chunks[0].get('source_info', {}).get('filename', 'document')}):\n\n"
-                f"{evidence_chunks[0].get('text', '')[:300]}...\n\n"
-                f"[Source: {evidence_chunks[0].get('source_info', {}).get('filename', 'document')}]"
-            )
             return {
-                "answer": mock_answer,
+                "answer": f"Unsupported LLM provider '{self.provider}'. Configured provider must be 'gemini'.",
                 "latency_ms": latency_ms,
-                "model_used": f"{self.model} (scaffold/offline mode)"
+                "provider": self.provider,
+                "model_used": self.model,
+                "endpoint_used": "none",
+                "fallback_occurred": False,
+                "error": f"Invalid provider: {self.provider}"
             }
 
-        # Check provider type: OpenRouter vs Google Gemini API
-        if self.api_key.startswith("sk-or-v1-") or self.api_key.startswith("sk-"):
-            return self._generate_openrouter(query, prompt, start_time)
+        # Check API key presence
+        if not self.api_key or self.api_key.startswith("your_"):
+            latency_ms = int((time.time() - start_time) * 1000)
+            error_msg = "Google Gemini API key is missing or unconfigured. Please set a valid GEMINI_API_KEY in .env."
+            logger.error(error_msg)
+            return {
+                "answer": f"Generation failed: {error_msg}",
+                "latency_ms": latency_ms,
+                "provider": "google-gemini",
+                "model_used": self.model,
+                "endpoint_used": f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
+                "fallback_occurred": False,
+                "error": error_msg
+            }
 
-        # Attempt Google Gemini SDK or REST generation
+        # Call Google Gemini API directly (no OpenRouter fallback, no prefix inference)
         return self._generate_google_gemini(query, prompt, start_time)
 
-    def _generate_openrouter(self, query: str, prompt: str, start_time: float) -> dict[str, Any]:
-        """Generates grounded answer using OpenRouter API with free-tier resilience."""
-        # Candidate models to try in order of preference (Flash free models first)
-        candidates = [
-            self.model if (":free" in self.model or "/" in self.model) else "inclusionai/ling-3.0-flash-vl:free",
-            "inclusionai/ling-3.0-flash-vl:free",
-            "inclusionai/ling-3.0-flash-sante:free",
-            "liquid/lfm-2.5-2.6b:free",
-            "qwen/qwen3.8-27b:free",
-            "google/gemma-4-26b-a4b-it:free",
-        ]
-
-        # Deduplicate while preserving order
-        models_to_try = []
-        for m in candidates:
-            if m not in models_to_try:
-                models_to_try.append(m)
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:3000",
-            "X-Title": "Adaptive Domain-Aware RAG",
-        }
-
-        last_error = ""
-        for model_name in models_to_try:
-            try:
-                payload = {
-                    "model": model_name,
-                    "messages": [
-                        {"role": "system", "content": GROUNDED_SYSTEM_INSTRUCTION},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "temperature": 0.1,
-                }
-                res = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers=headers,
-                    json=payload,
-                    timeout=15.0
-                )
-                if res.status_code == 200:
-                    data = res.json()
-                    answer_text = data["choices"][0]["message"]["content"]
-                    latency_ms = int((time.time() - start_time) * 1000)
-                    return {
-                        "answer": answer_text,
-                        "latency_ms": latency_ms,
-                        "model_used": f"{model_name} (via OpenRouter Free Tier)"
-                    }
-                else:
-                    last_error = f"Model {model_name} returned status {res.status_code}: {res.text}"
-                    logger.warning(f"OpenRouter model {model_name} failed: {res.status_code}. Trying next free model...")
-            except Exception as e:
-                last_error = str(e)
-                logger.warning(f"Exception calling OpenRouter model {model_name}: {e}. Trying next...")
-
-        latency_ms = int((time.time() - start_time) * 1000)
-        return {
-            "answer": f"Unable to synthesize final answer due to OpenRouter free-tier rate limits: {last_error}",
-            "latency_ms": latency_ms,
-            "model_used": self.model,
-            "error": last_error
-        }
-
     def _generate_google_gemini(self, query: str, prompt: str, start_time: float) -> dict[str, Any]:
-        """Generates grounded answer using Google Gemini native API / SDK."""
-        # Normalize non-standard model aliases to official Gemini 2.5 Flash
-        gemini_model = self.model
-        if "3.5" in gemini_model or "flash" in gemini_model.lower():
-            if not gemini_model.startswith("gemini-"):
-                gemini_model = "gemini-2.5-flash"
-            elif gemini_model == "gemini-3.5-flash":
-                gemini_model = "gemini-2.5-flash"
+        """Generates grounded answer using Google Gemini native API / SDK with exact model ID."""
+        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+        endpoint_display = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
 
         client = self._client
         try:
             # 1. New google-genai SDK
             if client is not None and hasattr(client, 'models'):
                 response = client.models.generate_content(
-                    model=gemini_model,
+                    model=self.model,
                     contents=prompt,
                     config={"system_instruction": GROUNDED_SYSTEM_INSTRUCTION}
                 )
@@ -194,31 +135,46 @@ GROUNDED ANSWER (with citations):"""
                 answer_text = response.text
             # 3. Direct Gemini REST endpoint
             else:
-                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={self.api_key}"
                 payload = {
                     "contents": [{
+                        "role": "user",
                         "parts": [{"text": f"{GROUNDED_SYSTEM_INSTRUCTION}\n\n{prompt}"}]
-                    }]
+                    }],
+                    "generationConfig": {
+                        "temperature": 0.1
+                    }
                 }
                 res = requests.post(endpoint, json=payload, timeout=25.0)
                 if res.status_code == 200:
                     data = res.json()
                     answer_text = data["candidates"][0]["content"]["parts"][0]["text"]
                 else:
-                    raise RuntimeError(f"Gemini API returned status {res.status_code}: {res.text}")
+                    error_detail = res.text
+                    try:
+                        err_json = res.json()
+                        error_detail = err_json.get("error", {}).get("message", res.text)
+                    except Exception:
+                        pass
+                    raise RuntimeError(f"Google Gemini API error ({res.status_code}): {error_detail}")
 
             latency_ms = int((time.time() - start_time) * 1000)
             return {
                 "answer": answer_text,
                 "latency_ms": latency_ms,
-                "model_used": gemini_model
+                "provider": "google-gemini",
+                "model_used": self.model,
+                "endpoint_used": endpoint_display,
+                "fallback_occurred": False
             }
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Error calling Gemini API: {e}")
+        except Exception as e:
+            logger.error("Error calling Google Gemini API: %s", e)
             latency_ms = int((time.time() - start_time) * 1000)
             return {
-                "answer": f"Unable to synthesize final answer due to Gemini API communication issue: {e!s}",
+                "answer": f"Unable to synthesize grounded answer due to Google Gemini API error: {e!s}",
                 "latency_ms": latency_ms,
-                "model_used": gemini_model,
+                "provider": "google-gemini",
+                "model_used": self.model,
+                "endpoint_used": endpoint_display,
+                "fallback_occurred": False,
                 "error": str(e)
             }
