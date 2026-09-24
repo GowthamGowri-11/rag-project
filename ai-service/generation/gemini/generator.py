@@ -109,7 +109,7 @@ GROUNDED ANSWER (with citations):"""
                 "error": error_msg
             }
 
-        # Call Google Gemini API directly (no OpenRouter fallback, no prefix inference)
+        # Call Google Gemini API directly with exact target model
         return self._generate_google_gemini(query, prompt, start_time)
 
     def _generate_google_gemini(self, query: str, prompt: str, start_time: float) -> dict[str, Any]:

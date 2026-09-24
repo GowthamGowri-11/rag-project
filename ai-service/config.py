@@ -15,16 +15,12 @@ class AppConfig:
     PORT: int = int(os.getenv("AI_SERVICE_PORT", "8000"))
     DEBUG: bool = os.getenv("NODE_ENV", "development") == "development"
 
-    # Explicit LLM Provider ('gemini' or 'openrouter')
+    # LLM Provider Configuration
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini").lower()
 
     # Google Gemini API
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-
-    # OpenRouter API (Separate configuration, not used by Gemini provider)
-    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "inclusionai/ling-3.0-flash-sante:free")
 
     # Qdrant Vector DB
     QDRANT_URL: str = os.getenv("QDRANT_URL", "http://localhost:6333")
