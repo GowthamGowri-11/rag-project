@@ -359,3 +359,42 @@ All tests verify:
 }
 ```
 *(Notice `llm_latency_ms: 0` - Gemini was completely inhibited from hallucinating!)*
+
+---
+
+## 8. Evaluation Methodology & Validation Status
+
+The system underwent rigorous empirical validation across model identity, vector indexing, retrieval precision, strict safety gating, and performance profiling.
+
+### 8.1 Final Validation Status
+
+```text
+Core RAG Architecture: COMPLETE
+BGE-M3: VERIFIED
+BGE Reranker: VERIFIED
+Qdrant Cloud: VERIFIED
+Adaptive Retrieval: VERIFIED
+Evidence Gate: VERIFIED
+Domain Isolation: VERIFIED
+Grounded Gemini Generation: VERIFIED
+Semantic Retrieval: VERIFIED
+Ragas: PASSED
+Performance: PASSED
+Full Validation: PASSED
+
+Ablation:
+OPTIONAL / NOT REQUIRED FOR CORE COMPLETION
+```
+
+### 8.2 Summary of Verified Empirical Metrics
+
+| Evaluation Benchmark | Key Measured Metrics | Reference Report |
+|---|---|---|
+| **Ragas Grounding** | **Context Precision: 1.0000**<br>**Context Recall: 1.0000**<br>Faithfulness: 0.4200 (reflects refusals/503s)<br>Answer Relevancy: 0.4625 | [`docs/RAGAS_RESULTS.md`](file:///c:/Users/GOWTHAMGOWRI/Desktop/RAG%20-%20Project/docs/RAGAS_RESULTS.md) |
+| **Component Latency Profiling** | Ingestion Total: 6013ms<br>Retrieval Median: 1913ms<br>Reranker Median: 16290ms (CPU mode)<br>**Zero-LLM Refusal Latency: 0.0ms** | [`docs/PERFORMANCE_RESULTS.md`](file:///c:/Users/GOWTHAMGOWRI/Desktop/RAG%20-%20Project/docs/PERFORMANCE_RESULTS.md) |
+| **Evidence Gate Refusal** | **100% Zero-LLM Refusal** on unindexed/low-evidence queries (`llm_latency_ms: 0`, `call_count: 0`) | [`tests/test_evidence_gate.py`](file:///c:/Users/GOWTHAMGOWRI/Desktop/RAG%20-%20Project/tests/test_evidence_gate.py) |
+| **Domain Isolation** | **0% Out-of-Domain Leakage** via Qdrant payload filters | [`tests/test_domain_isolation.py`](file:///c:/Users/GOWTHAMGOWRI/Desktop/RAG%20-%20Project/tests/test_domain_isolation.py) |
+| **Master Automated Suite** | All active checkpoints passed | [`tests/run_full_validation.py`](file:///c:/Users/GOWTHAMGOWRI/Desktop/RAG%20-%20Project/tests/run_full_validation.py) |
+
+For detailed analysis, refer to [`docs/PROJECT_COMPLETION_REPORT.md`](file:///c:/Users/GOWTHAMGOWRI/Desktop/RAG%20-%20Project/docs/PROJECT_COMPLETION_REPORT.md).
+

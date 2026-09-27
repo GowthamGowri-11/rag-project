@@ -1,0 +1,12 @@
+{
+  "name": "adaptive-domain-aware-rag",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Adaptive Domain-Aware RAG with strict grounding and dynamic domain isolation",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "frontend": "npm --prefix frontend run dev",
+    "backend": "npm --prefix backend start",
+    "ai-service": "python ai-service/app.py"
+  }
+}

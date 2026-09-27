@@ -1,0 +1,104 @@
+{
+  "timestamp": 1790518457.0104413,
+  "dataset_size": 10,
+  "evaluator_model": "gemini-3.5-flash-lite",
+  "embedding_model": "BAAI/bge-m3",
+  "aggregate_scores": {
+    "faithfulness": 0.42,
+    "answer_relevancy": 0.4625,
+    "context_precision": 1.0,
+    "context_recall": 1.0
+  },
+  "individual_results": [
+    {
+      "query": "What is Retrieval-Augmented Generation?",
+      "response": "Based on the provided documents, Retrieval-Augmented Generation (RAG) is defined as:\n\n* An architecture that supplements parametric LLM memory with authoritative external knowledge retrieved dynamically at inference time [Source: rag_architecture_guide.md, Page: 1, Section: Overview].\n* An enterprise architecture pattern that retrieves relevant context passages from a vector database (such as Qdrant) before synthesis. This mechanism prevents hallucinations and provides verified source citations for all factual assertions [Source: architecture_guide.md, Page: N/A, Section: Sentence Cluster].",
+      "reference": "RAG supplements parametric LLM memory with authoritative external knowledge retrieved dynamically at inference time.",
+      "faithfulness": 0.2,
+      "answer_relevancy": 0.7659,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "What is the vector dimension produced by BAAI/bge-m3?",
+      "response": "The BAAI/bge-m3 model produces 1024-dimensional dense vectors [Source: rag_architecture_guide.md, Page: 3, Section: Embeddings].",
+      "reference": "BAAI/bge-m3 generates 1024-dimensional dense vectors alongside lexical sparse weights.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8742,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "How is domain isolation implemented in Qdrant vector database?",
+      "response": "In the Qdrant vector database, domain isolation is achieved by indexing payload fields using the KEYWORD schema and attaching \"must match\" filter conditions to every query point request [Source: rag_architecture_guide.md, Page: 4, Section: Vector Storage].",
+      "reference": "Domain isolation is achieved by indexing payload fields using KEYWORD schema and attaching must match filter conditions to every query point request.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9845,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "What happens when the Evidence Gate score is below the confidence threshold?",
+      "response": "Unable to synthesize grounded answer due to Google Gemini API error: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+      "reference": "If the score is below the threshold, LLM generation is completely bypassed.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "What is semantic chunking?",
+      "response": "Semantic chunking is a method that partitions document text based on semantic transitions, sentence embeddings, and topic shifts rather than fixed character offsets, thereby preserving contextual coherence [Source: rag_architecture_guide.md, Page: 2, Section: Chunking].",
+      "reference": "Semantic chunking partitions document text based on semantic transitions, sentence embeddings, and topic shifts rather than fixed character offsets.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "How does cross-encoder reranking improve search accuracy?",
+      "response": "Unable to synthesize grounded answer due to Google Gemini API error: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+      "reference": "Cross-encoder reranking with BAAI/bge-reranker-v2-m3 scores query-document pairs simultaneously with full cross-attention, providing higher precision than bi-encoder cosine similarity.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "What is recursive chunking?",
+      "response": "Recursive chunking is a method that splits text using a hierarchy of delimiters (paragraphs '\\n\\n', then sentences '\\n', and then words ' ') until the chunk sizes satisfy the target window constraint [Source: rag_architecture_guide.md, Page: 7, Section: Strategies].",
+      "reference": "Recursive chunking splits text using a hierarchy of delimiters (paragraphs, sentences, words) until chunk sizes satisfy the target window constraint.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "What does context optimization do in the generation pipeline?",
+      "response": "I don't have sufficient information about this topic in the available knowledge base.",
+      "reference": "Context optimization performs token Jaccard similarity deduplication to remove overlapping passages and strips candidate chunks below noise thresholds.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "How does external document retrieval enhance language model responses?",
+      "response": "I don't have sufficient information about this topic in the available knowledge base.",
+      "reference": "It supplements parametric memory with authoritative knowledge fetched at runtime.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    },
+    {
+      "query": "In what manner does the system partition text by topic boundaries instead of character counts?",
+      "response": "I don't have sufficient information about this topic in the available knowledge base.",
+      "reference": "Through semantic chunking based on topic transitions and sentence embeddings.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0
+    }
+  ]
+}

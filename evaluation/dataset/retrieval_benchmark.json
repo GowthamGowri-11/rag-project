@@ -1,0 +1,512 @@
+[
+  {
+    "id": "q01",
+    "query": "What is Retrieval-Augmented Generation?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_01"],
+    "expected_answer": "RAG supplements parametric LLM memory with authoritative external knowledge retrieved dynamically at inference time.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q02",
+    "query": "What is the vector dimension produced by BAAI/bge-m3?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_03"],
+    "expected_answer": "BAAI/bge-m3 generates 1024-dimensional dense vectors alongside lexical sparse weights.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q03",
+    "query": "How is domain isolation implemented in Qdrant vector database?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_04"],
+    "expected_answer": "Domain isolation is achieved by indexing payload fields using KEYWORD schema and attaching must match filter conditions to every query point request.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q04",
+    "query": "What happens when the Evidence Gate score is below the confidence threshold?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_05"],
+    "expected_answer": "If the score is below the threshold, LLM generation is completely bypassed.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q05",
+    "query": "What is semantic chunking?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_02"],
+    "expected_answer": "Semantic chunking partitions document text based on semantic transitions, sentence embeddings, and topic shifts rather than fixed character offsets.",
+    "query_type": "conceptual"
+  },
+  {
+    "id": "q06",
+    "query": "How does cross-encoder reranking improve search accuracy?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_06"],
+    "expected_answer": "Cross-encoder reranking with BAAI/bge-reranker-v2-m3 scores query-document pairs simultaneously with full cross-attention, providing higher precision than bi-encoder cosine similarity.",
+    "query_type": "conceptual"
+  },
+  {
+    "id": "q07",
+    "query": "What is recursive chunking?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_07"],
+    "expected_answer": "Recursive chunking splits text using a hierarchy of delimiters (paragraphs, sentences, words) until chunk sizes satisfy the target window constraint.",
+    "query_type": "conceptual"
+  },
+  {
+    "id": "q08",
+    "query": "What does context optimization do in the generation pipeline?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_08"],
+    "expected_answer": "Context optimization performs token Jaccard similarity deduplication to remove overlapping passages and strips candidate chunks below noise thresholds.",
+    "query_type": "conceptual"
+  },
+  {
+    "id": "q09",
+    "query": "How does external document retrieval enhance language model responses?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_01"],
+    "expected_answer": "It supplements parametric memory with authoritative knowledge fetched at runtime.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q01"
+  },
+  {
+    "id": "q10",
+    "query": "In what manner does the system partition text by topic boundaries instead of character counts?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_02"],
+    "expected_answer": "Through semantic chunking based on topic transitions and sentence embeddings.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q05"
+  },
+  {
+    "id": "q11",
+    "query": "What dimensionality do dense representations from the BGE embedder occupy?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_03"],
+    "expected_answer": "1024 dimensions.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q02"
+  },
+  {
+    "id": "q12",
+    "query": "How are vector search boundaries kept segregated per knowledge namespace?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_04"],
+    "expected_answer": "Through Qdrant KEYWORD payload indexing and must-match filter queries.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q03"
+  },
+  {
+    "id": "q13",
+    "query": "Under what condition does the system inhibit generative synthesis to prevent hallucination?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_05"],
+    "expected_answer": "When the top candidate score falls below the strict Evidence Gate confidence threshold.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q04"
+  },
+  {
+    "id": "q14",
+    "query": "How does simultaneous query-document joint attention surpass bi-encoder vector dot products?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_06"],
+    "expected_answer": "Cross-encoders use full cross-attention across token pairs for higher precision.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q06"
+  },
+  {
+    "id": "q15",
+    "query": "How does hierarchical delimiter splitting divide lengthy documents?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_07"],
+    "expected_answer": "Recursive chunking progressively steps down through paragraphs, sentences, and words.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q07"
+  },
+  {
+    "id": "q16",
+    "query": "How are duplicate or near-identical passages eliminated prior to prompt injection?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_08"],
+    "expected_answer": "Through token Jaccard similarity deduplication and threshold filtering.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q08"
+  },
+  {
+    "id": "q17",
+    "query": "Explain RAG",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_01"],
+    "expected_answer": "Retrieval-Augmented Generation.",
+    "query_type": "short"
+  },
+  {
+    "id": "q18",
+    "query": "BGE-M3 vectors",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_03"],
+    "expected_answer": "1024-dimensional dense vectors and lexical weights.",
+    "query_type": "short"
+  },
+  {
+    "id": "q19",
+    "query": "Evidence Gate",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_05"],
+    "expected_answer": "Strict safety gate bypassing LLM calls when confidence is low.",
+    "query_type": "short"
+  },
+  {
+    "id": "q20",
+    "query": "Can you provide a comprehensive explanation of how Retrieval-Augmented Generation bridges the gap between static parametric weights in neural networks and live dynamic organizational data sources?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_01"],
+    "expected_answer": "RAG supplements parametric LLM memory with external knowledge retrieved dynamically at inference time.",
+    "query_type": "long"
+  },
+  {
+    "id": "q21",
+    "query": "What are the exact technical specifications and mathematical dimensionalities of dense vector representations generated by the BAAI/bge-m3 embedding architecture when indexing multi-lingual text passages?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_03"],
+    "expected_answer": "1024-dimensional dense vectors and lexical sparse weights.",
+    "query_type": "long"
+  },
+  {
+    "id": "q22",
+    "query": "What HTTP semantics are specified in RFC-9110?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_10"],
+    "expected_answer": "RFC-9110 defines HTTP status code 422 Unprocessable Content for documents with no extractable text.",
+    "query_type": "exact_identifier"
+  },
+  {
+    "id": "q23",
+    "query": "What does BAAI/bge-reranker-v2-m3 compute?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_06"],
+    "expected_answer": "Computes cross-encoder relevance scores for query-document pairs.",
+    "query_type": "exact_identifier"
+  },
+  {
+    "id": "q24",
+    "query": "Compare bi-encoder cosine similarity versus cross-encoder reranking performance",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_06"],
+    "expected_answer": "Bi-encoders calculate fast vector cosine similarity, whereas cross-encoders use full cross-attention for higher precision.",
+    "query_type": "comparison"
+  },
+  {
+    "id": "q25",
+    "query": "Compare semantic chunking versus recursive delimiter chunking",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_02", "rag_chunk_07"],
+    "expected_answer": "Semantic chunking splits text on topic transitions, while recursive chunking uses delimiter hierarchies.",
+    "query_type": "comparison"
+  },
+  {
+    "id": "q26",
+    "query": "How do Qdrant KEYWORD payload indexing, domain isolation filter conditions, and BGE-M3 vectors interact during ingestion?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_03", "rag_chunk_04"],
+    "expected_answer": "BGE-M3 generates vectors while Qdrant indexes domain payloads with KEYWORD schema for isolated filtering.",
+    "query_type": "multi_term"
+  },
+  {
+    "id": "q27",
+    "query": "What is Zero Trust Architecture?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_01"],
+    "expected_answer": "Zero Trust operates on 'never trust, always verify', enforcing continuous verification and least-privilege access.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q28",
+    "query": "What vulnerability is identified as CVE-2024-3094?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_02"],
+    "expected_answer": "A malicious backdoor in upstream XZ Utils liblzma allowing remote unauthorized access via OpenSSH.",
+    "query_type": "exact_identifier"
+  },
+  {
+    "id": "q29",
+    "query": "How does the TLS 1.3 cryptographic handshake secure data in transit?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_03"],
+    "expected_answer": "It encrypts handshake traffic after ServerHello using Diffie-Hellman ephemeral key exchange for forward secrecy.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q30",
+    "query": "What is the role of the authentication system?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_04"],
+    "expected_answer": "Verifies user credentials, issues JWT tokens with 15-minute expiration, and controls access via RBAC.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q31",
+    "query": "How do Intrusion Detection Systems respond to suspicious login sessions?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_05"],
+    "expected_answer": "Detects unauthorized attempts, flags abnormal brute-force patterns, and terminates compromised client sessions.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q32",
+    "query": "What is Mutual TLS (mTLS)?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_06"],
+    "expected_answer": "Enforces two-way verification where both client and server present X.509 digital certificates.",
+    "query_type": "conceptual"
+  },
+  {
+    "id": "q33",
+    "query": "What standard is specified in RFC-7519?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_07"],
+    "expected_answer": "JSON Web Token (JWT) open standard format for securely transmitting verifiable claims as JSON objects.",
+    "query_type": "exact_identifier"
+  },
+  {
+    "id": "q34",
+    "query": "What is Role-Based Access Control (RBAC)?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_08"],
+    "expected_answer": "Restricts system resource access based on assigned roles such as Admin, Auditor, and Viewer.",
+    "query_type": "conceptual"
+  },
+  {
+    "id": "q35",
+    "query": "How does an application thwart SQL injection attacks?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_09"],
+    "expected_answer": "By parameterizing database queries using prepared statements and input validation.",
+    "query_type": "conceptual"
+  },
+  {
+    "id": "q36",
+    "query": "What is the function of a Hardware Security Module (HSM)?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_10"],
+    "expected_answer": "Provides dedicated tamper-resistant hardware for generating, storing, and managing cryptographic root keys.",
+    "query_type": "direct_factual"
+  },
+  {
+    "id": "q37",
+    "query": "How does the system identify illegal login activity and terminate rogue user sessions?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_05"],
+    "expected_answer": "Intrusion Detection Systems detect unauthorized attempts and terminate compromised sessions.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q31"
+  },
+  {
+    "id": "q38",
+    "query": "In what way is the 'never trust, always verify' security model implemented?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_01"],
+    "expected_answer": "Through Zero Trust Architecture requiring continuous identity checks and least-privilege access.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q27"
+  },
+  {
+    "id": "q39",
+    "query": "What flaw was discovered in the XZ compression utility that compromised remote OpenSSH servers?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_02"],
+    "expected_answer": "CVE-2024-3094, a malicious backdoor in liblzma allowing remote unauthorized access.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q28"
+  },
+  {
+    "id": "q40",
+    "query": "How does two-way certificate exchange validate both connecting endpoints?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_06"],
+    "expected_answer": "Mutual TLS (mTLS) where both parties present X.509 certificates.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q32"
+  },
+  {
+    "id": "q41",
+    "query": "How are claims formatted into compact URL-safe verifiable web tokens?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_07"],
+    "expected_answer": "Through RFC-7519 JSON Web Token standard.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q33"
+  },
+  {
+    "id": "q42",
+    "query": "How does privilege segregation prevent unauthorized privilege escalation across administrators and viewers?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_08"],
+    "expected_answer": "Role-Based Access Control (RBAC).",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q34"
+  },
+  {
+    "id": "q43",
+    "query": "Why should dynamic SQL string concatenation be avoided in backend database queries?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_09"],
+    "expected_answer": "To prevent SQL injection vulnerabilities; prepared statements should be used instead.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q35"
+  },
+  {
+    "id": "q44",
+    "query": "How are master cryptographic root keys safeguarded against physical tampering?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_10"],
+    "expected_answer": "Through Hardware Security Modules (HSM).",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q36"
+  },
+  {
+    "id": "q45",
+    "query": "Explain Zero Trust",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_01"],
+    "expected_answer": "Continuous identity verification and least-privilege access enforcement.",
+    "query_type": "short"
+  },
+  {
+    "id": "q46",
+    "query": "CVE-2024-3094 fix",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_02"],
+    "expected_answer": "Malicious backdoor in upstream XZ Utils tarballs.",
+    "query_type": "short"
+  },
+  {
+    "id": "q47",
+    "query": "Compare Mutual TLS authentication versus standard unidirectional server TLS handshakes",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_03", "cyber_chunk_06"],
+    "expected_answer": "Unidirectional TLS validates only the server certificate, while mTLS requires both client and server X.509 certificates.",
+    "query_type": "comparison"
+  },
+  {
+    "id": "q48",
+    "query": "How do Diffie-Hellman ephemeral key exchange, forward secrecy, and TLS 1.3 handshake encryption operate together?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_03"],
+    "expected_answer": "TLS 1.3 uses Diffie-Hellman ephemeral keys to ensure forward secrecy for all traffic after ServerHello.",
+    "query_type": "multi_term"
+  },
+  {
+    "id": "q49",
+    "query": "What is the secret recipe for baking chocolate chip cookies in RAG systems?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": [],
+    "expected_answer": "IRRELEVANT / NO EVIDENCE",
+    "query_type": "irrelevant"
+  },
+  {
+    "id": "q50",
+    "query": "Who won the FIFA World Cup soccer championship final in 1998 in cybersecurity?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": [],
+    "expected_answer": "IRRELEVANT / NO EVIDENCE",
+    "query_type": "irrelevant"
+  },
+  {
+    "id": "q51",
+    "query": "What are the rules of clinical cardiology and myocardial infarction treatment protocols?",
+    "expected_domain": "clinical_cardiology",
+    "relevant_chunk_ids": [],
+    "expected_answer": "UNKNOWN DOMAIN / NO EVIDENCE",
+    "query_type": "unknown_domain"
+  },
+  {
+    "id": "q52",
+    "query": "What are the laws governing intellectual property copyright and trademark litigation?",
+    "expected_domain": "legal_ip",
+    "relevant_chunk_ids": [],
+    "expected_answer": "UNKNOWN DOMAIN / NO EVIDENCE",
+    "query_type": "unknown_domain"
+  },
+  {
+    "id": "q53",
+    "query": "How do quantum superconductivity and transmon qubits achieve quantum advantage?",
+    "expected_domain": "quantum_physics",
+    "relevant_chunk_ids": [],
+    "expected_answer": "UNKNOWN DOMAIN / NO EVIDENCE",
+    "query_type": "unknown_domain"
+  },
+  {
+    "id": "q54",
+    "query": "What are the clinical dosages for pediatric amoxicillin suspensions?",
+    "expected_domain": "pediatrics",
+    "relevant_chunk_ids": [],
+    "expected_answer": "UNKNOWN DOMAIN / NO EVIDENCE",
+    "query_type": "unknown_domain"
+  },
+  {
+    "id": "q55",
+    "query": "What is the capital city of Australia and what is its population?",
+    "expected_domain": "geography",
+    "relevant_chunk_ids": [],
+    "expected_answer": "UNKNOWN DOMAIN / NO EVIDENCE",
+    "query_type": "unknown_domain"
+  },
+  {
+    "id": "q56",
+    "query": "How are external knowledge chunks retrieved to augment LLM outputs during runtime execution?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_01"],
+    "expected_answer": "RAG architecture dynamically retrieves external knowledge to supplement parametric LLM memory.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q01"
+  },
+  {
+    "id": "q57",
+    "query": "In what way are sentence transitions used to split text without chopping mid-thought?",
+    "expected_domain": "rag",
+    "relevant_chunk_ids": ["rag_chunk_02"],
+    "expected_answer": "Semantic chunking partitions text based on topic transitions and sentence embeddings.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q05"
+  },
+  {
+    "id": "q58",
+    "query": "What security mechanism prevents an attacker from exploiting SQL vulnerabilities in application databases?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_09"],
+    "expected_answer": "Prepared statements, query parameterization, and input validation.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q35"
+  },
+  {
+    "id": "q59",
+    "query": "How does continuous authentication verify requests in zero-trust architectures?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_01"],
+    "expected_answer": "Zero Trust enforces 'never trust, always verify' with continuous identity verification.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q27"
+  },
+  {
+    "id": "q60",
+    "query": "What standard governs JSON Web Tokens used for claim verification?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_07"],
+    "expected_answer": "RFC-7519 JSON Web Token open standard.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q33"
+  },
+  {
+    "id": "q61",
+    "query": "How does asymmetric Diffie-Hellman establish forward secrecy in web transport?",
+    "expected_domain": "cybersecurity",
+    "relevant_chunk_ids": ["cyber_chunk_03"],
+    "expected_answer": "TLS 1.3 ephemeral Diffie-Hellman key exchange protects handshake data and preserves forward secrecy.",
+    "query_type": "paraphrase",
+    "paraphrase_of": "q29"
+  }
+]

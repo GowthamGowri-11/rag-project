@@ -1,15 +1,36 @@
 const API_BASE = '/api';
 
+/**
+ * Safely parses response JSON or falls back to text/status message.
+ * Prevents "Unexpected end of JSON input" errors when gateway or proxy returns empty or non-JSON errors.
+ */
+async function handleResponse(res, defaultErrorMsg = 'Request failed') {
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Body is not JSON (e.g. plain text or HTML error)
+    }
+  }
+
+  if (!res.ok) {
+    const errorMsg = data?.error || data?.message || text || `${defaultErrorMsg} (HTTP ${res.status})`;
+    throw new Error(errorMsg);
+  }
+
+  return data !== null ? data : {};
+}
+
 export async function fetchHealth() {
   const res = await fetch(`${API_BASE}/health`);
-  if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
-  return await res.json();
+  return await handleResponse(res, 'Health check failed');
 }
 
 export async function fetchDomains() {
   const res = await fetch(`${API_BASE}/domains`);
-  if (!res.ok) throw new Error(`Failed to fetch domains: ${res.status}`);
-  return await res.json();
+  return await handleResponse(res, 'Failed to fetch domains');
 }
 
 export async function createDomain(name, description) {
@@ -18,17 +39,12 @@ export async function createDomain(name, description) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, description })
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Failed to create domain');
-  }
-  return await res.json();
+  return await handleResponse(res, 'Failed to create domain');
 }
 
 export async function fetchDocuments() {
   const res = await fetch(`${API_BASE}/documents`);
-  if (!res.ok) throw new Error(`Failed to fetch documents: ${res.status}`);
-  return await res.json();
+  return await handleResponse(res, 'Failed to fetch documents');
 }
 
 export async function uploadDocument(file, domain) {
@@ -40,20 +56,14 @@ export async function uploadDocument(file, domain) {
     method: 'POST',
     body: formData
   });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Failed to upload document');
-  }
-  return await res.json();
+  return await handleResponse(res, 'Failed to upload document');
 }
 
 export async function deleteDocument(docId) {
   const res = await fetch(`${API_BASE}/documents/${docId}`, {
     method: 'DELETE'
   });
-  if (!res.ok) throw new Error(`Failed to delete document: ${res.status}`);
-  return await res.json();
+  return await handleResponse(res, 'Failed to delete document');
 }
 
 export async function queryRAG(query, domainOverride = null, strategyOverride = null) {
@@ -66,10 +76,6 @@ export async function queryRAG(query, domainOverride = null, strategyOverride = 
       retrieval_strategy_override: strategyOverride || null
     })
   });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Query failed');
-  }
-  return await res.json();
+  return await handleResponse(res, 'Query pipeline failed');
 }
+

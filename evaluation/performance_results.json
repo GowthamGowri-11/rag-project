@@ -1,0 +1,46 @@
+{
+  "timestamp": 1790520254.982978,
+  "queries_profiled": 25,
+  "ingestion_stages_ms": {
+    "document_parsing_ms": 0.34,
+    "document_analysis_ms": 0.34,
+    "adaptive_chunking_ms": 0.07,
+    "bge_m3_embedding_ms": 4969.23,
+    "qdrant_insertion_ms": 1043.42,
+    "total_ingestion_latency_ms": 6013.4
+  },
+  "query_components_ms": {
+    "retrieval_latency": {
+      "average": 2240.76,
+      "median": 1913.0,
+      "p95": 3294.8,
+      "p99": 7525.2,
+      "min": 1223.0,
+      "max": 8826.0
+    },
+    "reranking_latency": {
+      "average": 25116.88,
+      "median": 16290.0,
+      "p95": 63263.2,
+      "p99": 74187.6,
+      "min": 1466.0,
+      "max": 77016.0
+    },
+    "llm_generation_latency": {
+      "average": 6802.12,
+      "median": 1340.0,
+      "p95": 26138.0,
+      "p99": 30776.6,
+      "min": 0.0,
+      "max": 32123.0
+    },
+    "total_end_to_end_query_latency": {
+      "average": 34161.4,
+      "median": 24730.0,
+      "p95": 73931.8,
+      "p99": 79900.96,
+      "min": 3170.0,
+      "max": 81334.0
+    }
+  }
+}

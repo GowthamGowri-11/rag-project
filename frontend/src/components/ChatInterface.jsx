@@ -1,42 +1,41 @@
 import React, { useState } from 'react';
-import { Send, ShieldAlert, CheckCircle2, BookOpen, Filter, Trash2, ChevronDown, ChevronUp, Cpu } from 'lucide-react';
+import { Send, Trash2, Bot, Sparkles } from 'lucide-react';
 import { queryRAG } from '../services/api';
 
-export default function ChatInterface({ domains = [] }) {
+/**
+ * Strips robotic inline citation brackets like [Source: filename.md, Page: 1, Section: ...]
+ * to keep the output natural and clean like ChatGPT.
+ */
+function cleanAnswerText(text) {
+  if (!text) return '';
+  if (text.includes('Unable to synthesize grounded answer') || text.includes('HTTPSConnectionPool') || text.includes('Read timed out')) {
+    return "I'm sorry, I encountered a temporary connection delay reaching the language model. Please try asking again in a moment.";
+  }
+  return text
+    .replace(/\[Source:[^\]]+\]/gi, '')
+    .replace(/^Based on the provided evidence,?\s*/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+
+export default function ChatInterface() {
   const [queryText, setQueryText] = useState('');
-  const [domainOverride, setDomainOverride] = useState('');
-  const [strategyOverride, setStrategyOverride] = useState('');
   const [loading, setLoading] = useState(false);
-  const [expandedSources, setExpandedSources] = useState({});
-  const [expandedTelemetry, setExpandedTelemetry] = useState({});
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
       role: 'assistant',
-      status: 'READY',
-      text: 'Adaptive Domain-Aware RAG is initialized. Ask questions strictly grounded in your indexed knowledge domains. If evidence is insufficient, the system will explicitly refuse to answer without invoking the LLM.',
-      sources: [],
-      telemetry: null
+      text: 'Hello! I am your AI assistant. Ask me anything grounded in your uploaded knowledge base.'
     }
   ]);
-
-  const toggleSources = (msgId) => {
-    setExpandedSources((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
-  };
-
-  const toggleTelemetry = (msgId) => {
-    setExpandedTelemetry((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
-  };
 
   const handleClear = () => {
     setMessages([
       {
         id: 'welcome',
         role: 'assistant',
-        status: 'READY',
-        text: 'Chat history cleared. System ready for queries.',
-        sources: [],
-        telemetry: null
+        text: 'Chat history cleared. How can I help you today?'
       }
     ]);
   };
@@ -58,22 +57,25 @@ export default function ChatInterface({ domains = [] }) {
     setLoading(true);
 
     try {
-      const response = await queryRAG(
-        userPrompt,
-        domainOverride || null,
-        strategyOverride || null
+      const response = await queryRAG(userPrompt);
+
+      const cleanedText = cleanAnswerText(response.answer) || 
+        "I don't have sufficient information about this topic in the available knowledge base.";
+
+      // Extract unique source document names for a subtle footnote
+      const uniqueSources = Array.from(
+        new Set(
+          (response.sources || [])
+            .map((s) => s.document_name)
+            .filter(Boolean)
+        )
       );
 
       const aiMsg = {
         id: `ai_${Date.now()}`,
         role: 'assistant',
-        status: response.status,
-        domain: response.domain,
-        strategy: response.retrieval_strategy,
-        text: response.answer,
-        sources: response.sources || [],
-        telemetry: response.telemetry,
-        gateReason: response.gate_reason || response.refusal_reason
+        text: cleanedText,
+        sources: uniqueSources
       };
 
       setMessages((prev) => [...prev, aiMsg]);
@@ -81,10 +83,7 @@ export default function ChatInterface({ domains = [] }) {
       const errorMsg = {
         id: `err_${Date.now()}`,
         role: 'assistant',
-        status: 'FAILED',
-        text: `Pipeline error: ${err.message}`,
-        sources: [],
-        telemetry: null
+        text: `Error: ${err.message || 'Unable to process query.'}`
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
@@ -94,43 +93,20 @@ export default function ChatInterface({ domains = [] }) {
 
   return (
     <div className="chat-container">
-      {/* Top Filter & Action Bar */}
+      {/* Top Header */}
       <div className="chat-toolbar">
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Filter size={13} /> Scope:
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles size={16} color="var(--primary)" />
+          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            Grounded Assistant
           </span>
-
-          <select
-            className="form-select"
-            style={{ width: 'auto', padding: '4px 8px', fontSize: '0.78rem' }}
-            value={domainOverride}
-            onChange={(e) => setDomainOverride(e.target.value)}
-          >
-            <option value="">Auto-Detect Domain</option>
-            {domains.map((d) => (
-              <option key={d.id} value={d.id}>Domain: {d.name}</option>
-            ))}
-          </select>
-
-          <select
-            className="form-select"
-            style={{ width: 'auto', padding: '4px 8px', fontSize: '0.78rem' }}
-            value={strategyOverride}
-            onChange={(e) => setStrategyOverride(e.target.value)}
-          >
-            <option value="">Retrieval: Adaptive (Auto)</option>
-            <option value="dense">Dense Vector Retrieval</option>
-            <option value="sparse">Sparse Lexical Retrieval</option>
-            <option value="hybrid">Hybrid Fusion Retrieval</option>
-          </select>
         </div>
 
         <button
           type="button"
           onClick={handleClear}
           className="btn-secondary"
-          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+          style={{ padding: '5px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}
           title="Clear conversation"
         >
           <Trash2 size={13} />
@@ -149,157 +125,59 @@ export default function ChatInterface({ domains = [] }) {
             );
           }
 
-          // Assistant Message
-          const isAnswered = msg.status === 'ANSWERED';
-          const isRefused = msg.status === 'NO_EVIDENCE';
-          const isFailed = msg.status === 'FAILED';
-
+          // Assistant Message - Clean ChatGPT Style
           return (
             <div key={msg.id} className="message-assistant">
-              {/* Header Badge */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {isAnswered && (
-                    <span className="badge badge-success">
-                      <CheckCircle2 size={12} /> Grounded Answer
-                    </span>
-                  )}
-                  {isRefused && (
-                    <span className="badge badge-warning">
-                      <ShieldAlert size={12} /> Strict Refusal (Zero Hallucination)
-                    </span>
-                  )}
-                  {isFailed && (
-                    <span className="badge badge-danger">
-                      Pipeline Error
-                    </span>
-                  )}
-                  {msg.status === 'READY' && (
-                    <span className="badge badge-neutral">System Ready</span>
-                  )}
-
-                  {msg.domain && (
-                    <span className="badge badge-neutral">Domain: {msg.domain}</span>
-                  )}
-                  {msg.strategy && (
-                    <span className="badge badge-info">{msg.strategy}</span>
-                  )}
+              <div className="message-assistant-content">
+                {/* Clean Message Body */}
+                <div style={{ fontSize: '0.9375rem', lineHeight: '1.7', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+                  {msg.text}
                 </div>
+
+                {/* Subtle Sources Footnote (minimal, like Perplexity/ChatGPT) */}
+                {msg.sources && msg.sources.length > 0 && (
+                  <div style={{ 
+                    marginTop: '14px', 
+                    paddingTop: '8px', 
+                    borderTop: '1px solid var(--border-muted)',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Sources:</span>
+                    {msg.sources.map((src, i) => (
+                      <span 
+                        key={i} 
+                        style={{
+                          backgroundColor: 'var(--bg-page)',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border-muted)',
+                          fontSize: '0.72rem',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
+                        {src}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {/* Body Text */}
-              <div style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
-                {msg.text}
-              </div>
-
-              {/* Sources Toggle & Content */}
-              {msg.sources && msg.sources.length > 0 && (
-                <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-muted)', paddingTop: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleSources(msg.id)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--info)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <BookOpen size={13} />
-                    <span>Supporting Sources ({msg.sources.length})</span>
-                    {expandedSources[msg.id] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                  </button>
-
-                  {expandedSources[msg.id] && (
-                    <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {msg.sources.map((s, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            padding: '6px 10px',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-muted)',
-                            borderRadius: 'var(--radius-sm)',
-                            fontSize: '0.75rem',
-                            display: 'flex',
-                            justifyContent: 'space-between'
-                          }}
-                        >
-                          <div>
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.document_name}</span>
-                            {s.page && <span style={{ marginLeft: '6px', color: 'var(--text-secondary)' }}>p. {s.page}</span>}
-                            {s.section && <span style={{ marginLeft: '6px', color: 'var(--text-secondary)' }}>§ {s.section}</span>}
-                          </div>
-                          <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
-                            Score: {(s.relevance_score || 0).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Telemetry Toggle & Content */}
-              {msg.telemetry && (
-                <div style={{ marginTop: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleTelemetry(msg.id)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--text-secondary)',
-                      fontSize: '0.72rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <span>Inspect Pipeline Latency & Gates</span>
-                    {expandedTelemetry[msg.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                  </button>
-
-                  {expandedTelemetry[msg.id] && (
-                    <div style={{
-                      marginTop: '6px',
-                      padding: '8px 10px',
-                      backgroundColor: 'var(--bg-surface)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.72rem',
-                      display: 'flex',
-                      gap: '12px',
-                      flexWrap: 'wrap',
-                      color: 'var(--text-secondary)'
-                    }}>
-                      <span>Model: <strong>gemini-3.5-flash</strong></span>
-                      <span>Total: <strong>{msg.telemetry.total_query_latency_ms}ms</strong></span>
-                      <span>Retrieve: <strong>{msg.telemetry.retrieval_latency_ms}ms</strong></span>
-                      <span>Rerank: <strong>{msg.telemetry.reranking_latency_ms}ms</strong></span>
-                      <span>Candidates: <strong>{msg.telemetry.candidate_count}</strong></span>
-                      <span>Gate Score: <strong>{(msg.telemetry.evidence_score || 0).toFixed(2)}</strong></span>
-                      <span>LLM: <strong>{msg.telemetry.llm_latency_ms}ms</strong></span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}
 
+        {/* ChatGPT Style Typing Indicator */}
         {loading && (
-          <div className="message-assistant" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Cpu className="spin-icon" size={16} color="var(--primary)" />
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Executing retrieval router, cross-encoder reranker, and evidence gate...
-            </span>
+          <div className="message-assistant">
+            <div className="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
         )}
       </div>
@@ -309,8 +187,8 @@ export default function ChatInterface({ domains = [] }) {
         <input
           type="text"
           className="form-input"
-          style={{ flex: 1 }}
-          placeholder="Ask a question strictly grounded in uploaded knowledge..."
+          style={{ flex: 1, padding: '10px 14px', fontSize: '0.875rem' }}
+          placeholder="Message Grounded Assistant..."
           value={queryText}
           onChange={(e) => setQueryText(e.target.value)}
           disabled={loading}
@@ -319,12 +197,13 @@ export default function ChatInterface({ domains = [] }) {
           type="submit"
           className="btn-primary"
           disabled={!queryText.trim() || loading}
-          style={{ padding: '8px 16px' }}
+          style={{ padding: '8px 18px', display: 'flex', alignItems: 'center', gap: '6px' }}
         >
-          <Send size={14} />
-          <span>Ask</span>
+          <Send size={15} />
+          <span>Send</span>
         </button>
       </form>
     </div>
   );
 }
+

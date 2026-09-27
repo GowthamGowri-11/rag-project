@@ -5,21 +5,18 @@ from config import config
 from evaluation.ragas_eval import RagasEvaluator
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from generation.context_optimizer.optimizer import ContextOptimizer
-from generation.evidence_checker.checker import EvidenceChecker
-from generation.gemini.generator import GeminiGenerator
-from ingestion.chunking.selector import AdaptiveChunkingSelector
-from ingestion.document_analyzer.analyzer import DocumentAnalyzer
-from ingestion.embeddings.bge_m3 import BGEM3EmbeddingService
-from ingestion.loaders import load_document
-from retrieval.dense.retriever import DenseRetriever
-from retrieval.domain_router.router import DomainRouter
-from retrieval.hybrid.retriever import HybridRetriever
-from retrieval.query_analyzer.analyzer import LightweightQueryAnalyzer
-from retrieval.reranker.bge_reranker import BGERerankerService
-from retrieval.retrieval_router.router import RetrievalRouter
-from retrieval.sparse.retriever import SparseRetriever
-from vector_store.qdrant.client import QdrantKnowledgeStore
+from generation import ContextOptimizer, EvidenceChecker, GeminiGenerator
+from ingestion import AdaptiveChunkingSelector, BGEM3EmbeddingService, DocumentAnalyzer, load_document
+from retrieval import (
+    BGERerankerService,
+    DenseRetriever,
+    DomainRouter,
+    HybridRetriever,
+    LightweightQueryAnalyzer,
+    RetrievalRouter,
+    SparseRetriever,
+)
+from vector_store import QdrantKnowledgeStore
 
 # Setup Logging
 logging.basicConfig(
@@ -157,12 +154,13 @@ def ingest_document():
         filename = file_obj.filename
         file_bytes = file_obj.read()
     elif request.form.get("content"):
-        filename = str(request.form.get("filename") or "unnamed_document.txt")
+        filename = request.form.get("filename") or "unnamed_document.txt"
         form_content = request.form.get("content") or ""
         file_bytes = form_content.encode('utf-8')
     else:
         json_data = request.get_json(silent=True) or {}
-        filename = str(json_data.get("filename") or "unnamed_document.txt")
+        filename = json_data.get("filename") or "unnamed_document.txt"
+
         raw_content = json_data.get("content", "")
         file_bytes = raw_content.encode('utf-8') if isinstance(raw_content, str) else b""
         if not file_bytes:
@@ -290,10 +288,10 @@ def execute_query():
     # Step 3: Retrieval Router (Selects Dense, Sparse, or Hybrid)
     selected_strategy, _strat_reason = retrieval_router.select_strategy(analysis, override=strategy_override)
 
-    # Step 4: First-Stage Retrieval (Top 20-50 candidates)
+    # Step 4: First-Stage Retrieval (Streamlined on CPU for sub-5s latency)
     t_ret_start = time.time()
     candidates = []
-    limit = config.TOP_K_CANDIDATES
+    limit = 12 if config.EMBEDDING_DEVICE == "cpu" else config.TOP_K_CANDIDATES
 
     if selected_strategy == "sparse":
         kw = analysis.exact_identifiers or analysis.keywords
@@ -314,8 +312,10 @@ def execute_query():
     # Step 6: Context Optimization (Deduplication, threshold filtering)
     optimized_context = context_optimizer.optimize(reranked_chunks)
 
-    # Step 7: Strict Evidence Gate Pre-Check
+    # Step 7: Strict Evidence Gate Pre-Check (Calibrated threshold: 0.45 for cross-encoder logits)
+    evidence_checker.threshold = 0.45
     gate_result = evidence_checker.check(query_str, optimized_context)
+
 
     # CRITICAL CONTRACT: If Evidence Gate FAILS, NEVER call Gemini!
     if not gate_result.is_sufficient:
@@ -324,16 +324,17 @@ def execute_query():
             f"Evidence Gate FAILED (Score: {gate_result.confidence_score}). "
             "Gemini was NOT invoked. Returning NO_EVIDENCE response."
         )
+        resolved_domain = target_domain or (candidates[0].get("domain") if candidates else "general")
         return jsonify({
             "query": query_str,
             "status": "NO_EVIDENCE",
-            "domain": target_domain,
+            "domain": resolved_domain,
             "retrieval_strategy": selected_strategy,
             "answer": gate_result.insufficient_response,
             "sources": [],
             "telemetry": {
                 "retrieval_strategy": selected_strategy,
-                "domain_detected": target_domain,
+                "domain_detected": resolved_domain,
                 "retrieval_latency_ms": t_ret_ms,
                 "candidate_count": len(candidates),
                 "reranking_latency_ms": t_rerank_ms,
@@ -365,16 +366,19 @@ def execute_query():
             "relevance_score": c.get("rerank_score", c.get("retrieval_score", 0.0))
         })
 
+    # Dynamically resolve domain from top evidence if query didn't explicitly name the domain
+    resolved_domain = target_domain or (optimized_context[0].get("domain") if optimized_context else (candidates[0].get("domain") if candidates else "general"))
+
     response_payload = {
         "query": query_str,
         "status": "ANSWERED",
-        "domain": target_domain,
+        "domain": resolved_domain,
         "retrieval_strategy": selected_strategy,
         "answer": gen_result.get("answer", ""),
         "sources": sources,
         "telemetry": {
             "retrieval_strategy": selected_strategy,
-            "domain_detected": target_domain,
+            "domain_detected": resolved_domain,
             "retrieval_latency_ms": t_ret_ms,
             "candidate_count": len(candidates),
             "reranking_latency_ms": t_rerank_ms,
@@ -391,4 +395,5 @@ def execute_query():
 if __name__ == "__main__":
     port = config.PORT
     logger.info(f"Starting Adaptive Domain-Aware RAG AI Service on port {port}...")
-    app.run(host="0.0.0.0", port=port, debug=config.DEBUG)
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
+

@@ -1,0 +1,80 @@
+{
+  "A": {
+    "experiment_id": "A",
+    "architecture": "Dense Retrieval only",
+    "queries_evaluated": 54,
+    "hit_rate_5": 0.0,
+    "recall_5": 0.0,
+    "recall_10": 0.0,
+    "precision_5": 0.0,
+    "mrr": 0.0,
+    "avg_retrieval_latency_ms": 246.35,
+    "avg_reranking_latency_ms": 0.0,
+    "avg_total_latency_ms": 246.35
+  },
+  "B": {
+    "experiment_id": "B",
+    "architecture": "Sparse Retrieval only",
+    "queries_evaluated": 54,
+    "hit_rate_5": 0.0,
+    "recall_5": 0.0,
+    "recall_10": 0.0,
+    "precision_5": 0.0,
+    "mrr": 0.0,
+    "avg_retrieval_latency_ms": 0.08,
+    "avg_reranking_latency_ms": 0.0,
+    "avg_total_latency_ms": 0.08
+  },
+  "C": {
+    "experiment_id": "C",
+    "architecture": "Hybrid Retrieval",
+    "queries_evaluated": 54,
+    "hit_rate_5": 0.0,
+    "recall_5": 0.0,
+    "recall_10": 0.0,
+    "precision_5": 0.0,
+    "mrr": 0.0,
+    "avg_retrieval_latency_ms": 172.23,
+    "avg_reranking_latency_ms": 0.0,
+    "avg_total_latency_ms": 172.23
+  },
+  "D": {
+    "experiment_id": "D",
+    "architecture": "Dense + BGE Reranker",
+    "queries_evaluated": 54,
+    "hit_rate_5": 0.0,
+    "recall_5": 0.0,
+    "recall_10": 0.0,
+    "precision_5": 0.0,
+    "mrr": 0.0,
+    "avg_retrieval_latency_ms": 212.76,
+    "avg_reranking_latency_ms": 0.0,
+    "avg_total_latency_ms": 212.77
+  },
+  "E": {
+    "experiment_id": "E",
+    "architecture": "Hybrid + BGE Reranker",
+    "queries_evaluated": 54,
+    "hit_rate_5": 0.0,
+    "recall_5": 0.0,
+    "recall_10": 0.0,
+    "precision_5": 0.0,
+    "mrr": 0.0,
+    "avg_retrieval_latency_ms": 266.6,
+    "avg_reranking_latency_ms": 0.0,
+    "avg_total_latency_ms": 266.6
+  },
+  "F": {
+    "experiment_id": "F",
+    "architecture": "Adaptive Router + BGE Reranker",
+    "queries_evaluated": 54,
+    "hit_rate_5": 0.0,
+    "recall_5": 0.0,
+    "recall_10": 0.0,
+    "precision_5": 0.0,
+    "mrr": 0.0,
+    "avg_retrieval_latency_ms": 479.3,
+    "avg_reranking_latency_ms": 0.0,
+    "avg_total_latency_ms": 479.31
+  }
+}

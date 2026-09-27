@@ -20,8 +20,15 @@ router.post('/query', async (req, res, next) => {
     const result = await aiClient.query(payload);
     res.json(result);
   } catch (err) {
+    console.error(`[Gateway] Query forwarding error:`, err.message);
+    if (err.message.includes('fetch failed') || err.message.includes('ECONNREFUSED')) {
+      return res.status(503).json({
+        error: 'AI Service is currently offline or loading models. Please verify that python app.py is running on port 8000.'
+      });
+    }
     next(err);
   }
 });
+
 
 module.exports = router;

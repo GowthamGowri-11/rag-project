@@ -1,6 +1,6 @@
 from typing import Any, ClassVar
 
-from ..document_analyzer.analyzer import DocumentProfile
+from ..document_analyzer import DocumentProfile
 from ..loaders.base import DocumentRepresentation
 from .strategies import (
     BaseChunkingStrategy,

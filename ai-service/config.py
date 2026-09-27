@@ -7,9 +7,10 @@ from dotenv import load_dotenv
 project_root = Path(__file__).resolve().parent.parent
 env_path = project_root / ".env"
 if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
+    load_dotenv(dotenv_path=env_path, override=True)
 else:
-    load_dotenv()
+    load_dotenv(override=True)
+
 
 class AppConfig:
     PORT: int = int(os.getenv("AI_SERVICE_PORT", "8000"))
@@ -33,8 +34,9 @@ class AppConfig:
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
 
     # Pipeline thresholds
-    EVIDENCE_CONFIDENCE_THRESHOLD: float = float(os.getenv("EVIDENCE_CONFIDENCE_THRESHOLD", "0.65"))
-    TOP_K_CANDIDATES: int = int(os.getenv("TOP_K_CANDIDATES", "30"))
+    EVIDENCE_CONFIDENCE_THRESHOLD: float = float(os.getenv("EVIDENCE_CONFIDENCE_THRESHOLD", "0.45"))
+    TOP_K_CANDIDATES: int = int(os.getenv("TOP_K_CANDIDATES", "15"))
+
     TOP_K_RERANKED: int = int(os.getenv("TOP_K_RERANKED", "7"))
 
     # Logging

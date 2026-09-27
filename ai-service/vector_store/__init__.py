@@ -1,3 +1,3 @@
-from .qdrant.client import QdrantKnowledgeStore
+from .qdrant_store import QdrantKnowledgeStore
 
 __all__ = ["QdrantKnowledgeStore"]

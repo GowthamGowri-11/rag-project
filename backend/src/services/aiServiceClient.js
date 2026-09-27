@@ -64,8 +64,9 @@ class AIServiceClient {
         'Accept': 'application/json'
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(60000)
+      signal: AbortSignal.timeout(180000) // 3 minutes timeout for CPU transformer reranking
     });
+
 
     if (!response.ok) {
       const errText = await response.text();

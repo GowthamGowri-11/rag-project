@@ -1,0 +1,138 @@
+[
+  {
+    "id": "rag_doc_01",
+    "filename": "rag_architecture_guide.md",
+    "domain": "rag",
+    "document_type": "markdown",
+    "chunks": [
+      {
+        "id": "rag_chunk_01",
+        "text": "Retrieval-Augmented Generation (RAG) is an architecture that supplements parametric LLM memory with authoritative external knowledge retrieved dynamically at inference time.",
+        "section": "Overview",
+        "page": 1
+      },
+      {
+        "id": "rag_chunk_02",
+        "text": "Semantic chunking partitions document text based on semantic transitions, sentence embeddings, and topic shifts rather than fixed character offsets, preserving contextual coherence.",
+        "section": "Chunking",
+        "page": 2
+      },
+      {
+        "id": "rag_chunk_03",
+        "text": "BAAI/bge-m3 is a multi-lingual embedding model that generates 1024-dimensional dense vectors alongside lexical sparse weights for dense-sparse hybrid search.",
+        "section": "Embeddings",
+        "page": 3
+      },
+      {
+        "id": "rag_chunk_04",
+        "text": "In Qdrant vector database, domain isolation is achieved by indexing payload fields using KEYWORD schema and attaching must match filter conditions to every query point request.",
+        "section": "Vector Storage",
+        "page": 4
+      },
+      {
+        "id": "rag_chunk_05",
+        "text": "The strict Evidence Gate enforces anti-hallucination guarantees by computing top candidate reranker confidence; if the score is below the threshold, LLM generation is completely bypassed.",
+        "section": "Evidence Gate",
+        "page": 5
+      },
+      {
+        "id": "rag_chunk_06",
+        "text": "Cross-encoder reranking with BAAI/bge-reranker-v2-m3 scores query-document pairs simultaneously with full cross-attention, providing higher precision than bi-encoder cosine similarity.",
+        "section": "Reranking",
+        "page": 6
+      },
+      {
+        "id": "rag_chunk_07",
+        "text": "Recursive chunking splits text using a hierarchy of delimiters (paragraphs '\\n\\n', then sentences '\\n', then words ' ') until chunk sizes satisfy the target window constraint.",
+        "section": "Strategies",
+        "page": 7
+      },
+      {
+        "id": "rag_chunk_08",
+        "text": "Context optimization performs token Jaccard similarity deduplication to remove overlapping passages and strips candidate chunks whose relevance falls below noise thresholds.",
+        "section": "Context Optimizer",
+        "page": 8
+      },
+      {
+        "id": "rag_chunk_09",
+        "text": "Ragas metric Faithfulness measures the ratio of claims in the generated response that can be directly inferred from the retrieved context passages.",
+        "section": "Evaluation",
+        "page": 9
+      },
+      {
+        "id": "rag_chunk_10",
+        "text": "RFC-9110 governs standard HTTP semantics, defining status code 422 Unprocessable Content when an ingestion document contains no extractable text.",
+        "section": "HTTP Standards",
+        "page": 10
+      }
+    ]
+  },
+  {
+    "id": "cyber_doc_01",
+    "filename": "cybersecurity_specifications.md",
+    "domain": "cybersecurity",
+    "document_type": "markdown",
+    "chunks": [
+      {
+        "id": "cyber_chunk_01",
+        "text": "Zero Trust Architecture operates on the core principle of 'never trust, always verify', requiring continuous identity verification and least-privilege access enforcement.",
+        "section": "Zero Trust",
+        "page": 1
+      },
+      {
+        "id": "cyber_chunk_02",
+        "text": "Vulnerability CVE-2024-3094 involves a malicious backdoor injected into upstream XZ Utils tarballs affecting liblzma, allowing remote unauthorized access via OpenSSH.",
+        "section": "Vulnerabilities",
+        "page": 2
+      },
+      {
+        "id": "cyber_chunk_03",
+        "text": "TLS 1.3 cryptographic handshake encrypts all handshake payload traffic following the ServerHello message, using Diffie-Hellman ephemeral key exchange for forward secrecy.",
+        "section": "Cryptography",
+        "page": 3
+      },
+      {
+        "id": "cyber_chunk_04",
+        "text": "The authentication system verifies user credentials, issues cryptographically signed JWT tokens with 15-minute expiration, and controls access using role-based access control.",
+        "section": "Authentication",
+        "page": 4
+      },
+      {
+        "id": "cyber_chunk_05",
+        "text": "Intrusion Detection Systems automatically detect unauthorized access attempts, flag abnormal brute-force login patterns, and terminate compromised client sessions.",
+        "section": "Intrusion Detection",
+        "page": 5
+      },
+      {
+        "id": "cyber_chunk_06",
+        "text": "Mutual TLS (mTLS) enforces two-way verification where both client and server present X.509 digital certificates to establish a cryptographically authenticated channel.",
+        "section": "mTLS",
+        "page": 6
+      },
+      {
+        "id": "cyber_chunk_07",
+        "text": "RFC-7519 defines JSON Web Token (JWT) open standard format for securely transmitting verifiable claims as compact, URL-safe JSON objects.",
+        "section": "JWT Standard",
+        "page": 7
+      },
+      {
+        "id": "cyber_chunk_08",
+        "text": "Role-Based Access Control (RBAC) restricts system resource access based on assigned roles such as Admin, Auditor, and Viewer, preventing privilege escalation.",
+        "section": "Access Control",
+        "page": 8
+      },
+      {
+        "id": "cyber_chunk_09",
+        "text": "SQL injection prevention requires parameterizing database queries using prepared statements and input validation rather than dynamic string concatenation.",
+        "section": "Data Security",
+        "page": 9
+      },
+      {
+        "id": "cyber_chunk_10",
+        "text": "Hardware Security Modules (HSM) provide dedicated tamper-resistant hardware for generating, storing, and managing cryptographic root keys.",
+        "section": "Hardware Security",
+        "page": 10
+      }
+    ]
+  }
+]
