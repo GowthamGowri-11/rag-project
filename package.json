@@ -4,9 +4,12 @@
   "private": true,
   "description": "Adaptive Domain-Aware RAG with strict grounding and dynamic domain isolation",
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
+    "dev": "concurrently -n \"gateway,frontend\" -c \"blue,cyan\" \"npm run backend\" \"npm run frontend\"",
     "frontend": "npm --prefix frontend run dev",
     "backend": "npm --prefix backend start",
     "ai-service": "python ai-service/app.py"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }

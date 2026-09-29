@@ -24,13 +24,25 @@ async function handleResponse(res, defaultErrorMsg = 'Request failed') {
 }
 
 export async function fetchHealth() {
-  const res = await fetch(`${API_BASE}/health`);
-  return await handleResponse(res, 'Health check failed');
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    return await handleResponse(res, 'Health check failed');
+  } catch (err) {
+    return {
+      status: 'OFFLINE',
+      gateway: false,
+      ai_service: { status: 'OFFLINE' }
+    };
+  }
 }
 
 export async function fetchDomains() {
-  const res = await fetch(`${API_BASE}/domains`);
-  return await handleResponse(res, 'Failed to fetch domains');
+  try {
+    const res = await fetch(`${API_BASE}/domains`);
+    return await handleResponse(res, 'Failed to fetch domains');
+  } catch (err) {
+    return [];
+  }
 }
 
 export async function createDomain(name, description) {
@@ -43,8 +55,12 @@ export async function createDomain(name, description) {
 }
 
 export async function fetchDocuments() {
-  const res = await fetch(`${API_BASE}/documents`);
-  return await handleResponse(res, 'Failed to fetch documents');
+  try {
+    const res = await fetch(`${API_BASE}/documents`);
+    return await handleResponse(res, 'Failed to fetch documents');
+  } catch (err) {
+    return [];
+  }
 }
 
 export async function uploadDocument(file, domain) {

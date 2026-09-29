@@ -30,7 +30,8 @@ router.get('/', async (req, res, next) => {
     const docs = await aiClient.getDocuments();
     res.json(docs);
   } catch (err) {
-    next(err);
+    console.warn(`[Gateway] AI service not ready for /api/documents: ${err.message}`);
+    res.json([]);
   }
 });
 

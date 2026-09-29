@@ -8,7 +8,8 @@ router.get('/', async (req, res, next) => {
     const domains = await aiClient.getDomains();
     res.json(domains);
   } catch (err) {
-    next(err);
+    console.warn(`[Gateway] AI service not ready for /api/domains: ${err.message}`);
+    res.json([]);
   }
 });
 

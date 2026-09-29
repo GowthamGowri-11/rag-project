@@ -1,18 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Layers, UploadCloud, MessageSquare, FileText, Shield, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
-import Dashboard from './components/Dashboard';
-import DomainsManager from './components/DomainsManager';
-import DocumentUpload from './components/DocumentUpload';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  ShieldCheck, 
+  Sparkles, 
+  MessageSquare, 
+  Layers, 
+  Database, 
+  RefreshCw, 
+  Plus, 
+  Compass, 
+  Server,
+  Activity,
+  ChevronDown,
+  X
+} from 'lucide-react';
+import LandingPage from './components/LandingPage';
 import ChatInterface from './components/ChatInterface';
-import DocumentList from './components/DocumentList';
+import KnowledgeHub from './components/KnowledgeHub';
 import { fetchHealth, fetchDomains, fetchDocuments } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat' | 'hub'
   const [health, setHealth] = useState(null);
   const [domains, setDomains] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showStatusDrawer, setShowStatusDrawer] = useState(false);
+  const [prefilledPrompt, setPrefilledPrompt] = useState('');
 
   const loadData = async () => {
     try {
@@ -21,170 +34,245 @@ export default function App() {
         fetchDomains(),
         fetchDocuments()
       ]);
-      if (h.status === 'fulfilled') setHealth(h.value);
-      if (doms.status === 'fulfilled') setDomains(doms.value);
-      if (docs.status === 'fulfilled') setDocuments(docs.value);
+      if (h.status === 'fulfilled' && h.value) setHealth(h.value);
+      if (doms.status === 'fulfilled' && Array.isArray(doms.value)) setDomains(doms.value);
+      if (docs.status === 'fulfilled' && Array.isArray(docs.value)) setDocuments(docs.value);
     } catch (err) {
-      console.error('Data loading error:', err);
+      console.warn('Data sync notice:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const drawerRef = useRef(null);
+
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 12000);
+    const interval = setInterval(loadData, 20000);
     return () => clearInterval(interval);
   }, []);
 
-  const isGatewayConnected = health?.gateway;
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (drawerRef.current && !drawerRef.current.contains(event.target)) {
+        if (!event.target.closest('.status-summary-pill')) {
+          setShowStatusDrawer(false);
+        }
+      }
+    }
+    if (showStatusDrawer) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showStatusDrawer]);
+
+  const isGatewayOnline = !!health?.gateway;
   const isAiServiceOnline = health?.ai_service?.status === 'HEALTHY';
+  const isQdrantReady = !!health?.ai_service?.qdrant?.is_connected;
+
+  const handleStartChatWithPrompt = (prompt) => {
+    setPrefilledPrompt(prompt);
+    setActiveTab('chat');
+  };
+
+  const handleNewChat = () => {
+    setPrefilledPrompt('');
+    setActiveTab('chat');
+  };
 
   return (
-    <div className="app-container">
-      {/* Top Application Header */}
-      <header className="header">
-        <div className="logo-area">
-          <div className="logo-icon-box">
-            <Shield size={20} />
+    <div className="app-shell">
+      {/* Top Sleek Navigation Bar */}
+      <header className="navbar">
+        {/* Left: Brand Identity */}
+        <div className="nav-brand" onClick={() => setActiveTab('overview')}>
+          <div className="brand-icon-box">
+            <img src="/atlyx-logo.png" alt="ATLYX-AI" className="brand-logo-img" />
           </div>
-          <div>
-            <h1 className="title-primary">Adaptive Domain-Aware RAG</h1>
-            <p className="subtitle">Strict Grounding • Dynamic Domain Isolation • Adaptive Retrieval</p>
+          <div className="brand-text">
+            <span className="brand-name">ATLYX-AI</span>
+            <span className="brand-badge">Strict Grounding</span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Gateway Status Badge */}
-          <div className={`badge ${isGatewayConnected ? 'badge-success' : 'badge-danger'}`}>
-            <span style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: isGatewayConnected ? 'var(--success)' : 'var(--danger)'
-            }} />
-            <span>Gateway: {isGatewayConnected ? 'Port 5000' : 'Disconnected'}</span>
-          </div>
-
-          {/* AI Engine Status Badge */}
-          <div className={`badge ${isAiServiceOnline ? 'badge-success' : 'badge-warning'}`}>
-            <span style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: isAiServiceOnline ? 'var(--success)' : 'var(--warning)'
-            }} />
-            <span>AI Service: {isAiServiceOnline ? 'Port 8000' : 'Offline'}</span>
-          </div>
+        {/* Center: Navigation Control */}
+        <nav className="nav-menu">
+          <button
+            className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <Compass size={14} />
+            <span>Overview</span>
+          </button>
 
           <button
-            onClick={loadData}
-            className="btn-secondary"
-            style={{ padding: '5px 8px' }}
-            title="Refresh status"
+            className={`nav-item ${activeTab === 'chat' ? 'active' : ''}`}
+            onClick={() => setActiveTab('chat')}
           >
-            <RefreshCw size={13} />
+            <MessageSquare size={14} />
+            <span>ATLYX Chat</span>
+          </button>
+
+          <button
+            className={`nav-item ${activeTab === 'hub' ? 'active' : ''}`}
+            onClick={() => setActiveTab('hub')}
+          >
+            <Layers size={14} />
+            <span>Knowledge Hub ({documents.length})</span>
+          </button>
+        </nav>
+
+        {/* Right: Live Telemetry & Actions */}
+        <div className="nav-actions">
+          {/* Micro Status Summary Pill */}
+          <div 
+            className="status-summary-pill"
+            onClick={() => setShowStatusDrawer(!showStatusDrawer)}
+            title="Click to view backend service status"
+          >
+            <span 
+              className={`status-dot ${isAiServiceOnline ? 'online' : (isGatewayOnline ? 'degraded' : 'offline')}`} 
+            />
+            <span>
+              {isAiServiceOnline ? 'Services Ready' : (isGatewayOnline ? 'Gateway Port 5000' : 'Offline')}
+            </span>
+            <ChevronDown size={12} />
+          </div>
+
+          {/* Quick Action: New Chat */}
+          <button
+            className="btn-atlyx-primary"
+            style={{ padding: '6px 14px', fontSize: '0.8125rem' }}
+            onClick={handleNewChat}
+          >
+            <Plus size={14} />
+            <span>New Query</span>
           </button>
         </div>
+
+        {/* Service Status Drawer Dropdown */}
+        {showStatusDrawer && (
+          <div className="service-status-drawer" ref={drawerRef}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-default)', paddingBottom: '10px' }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                System Architecture Status
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  onClick={loadData}
+                  className="btn-icon-subtle"
+                  style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                  title="Refresh Health"
+                >
+                  <RefreshCw size={11} />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  onClick={() => setShowStatusDrawer(false)}
+                  className="btn-icon-subtle"
+                  style={{ 
+                    padding: '4px', 
+                    borderRadius: 'var(--radius-full)', 
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1
+                  }}
+                  title="Close Status Drawer"
+                  aria-label="Close"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="service-drawer-row">
+              <span style={{ color: 'var(--text-secondary)' }}>Express Gateway</span>
+              <span style={{ 
+                color: isGatewayOnline ? 'var(--success)' : 'var(--danger)', 
+                fontFamily: 'var(--font-mono)', 
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <span className={`status-dot ${isGatewayOnline ? 'online' : 'offline'}`} />
+                {isGatewayOnline ? 'Port 5000 (Active)' : 'Disconnected'}
+              </span>
+            </div>
+
+            <div className="service-drawer-row">
+              <span style={{ color: 'var(--text-secondary)' }}>Python AI Engine</span>
+              <span style={{ 
+                color: isAiServiceOnline ? 'var(--success)' : 'var(--warning)', 
+                fontFamily: 'var(--font-mono)', 
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <span className={`status-dot ${isAiServiceOnline ? 'online' : 'degraded'}`} />
+                {isAiServiceOnline ? 'Port 8000 (Healthy)' : 'Offline / Standby'}
+              </span>
+            </div>
+
+            <div className="service-drawer-row">
+              <span style={{ color: 'var(--text-secondary)' }}>Qdrant Cloud Store</span>
+              <span style={{ 
+                color: isQdrantReady ? 'var(--success)' : 'var(--text-muted)', 
+                fontFamily: 'var(--font-mono)', 
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <span className={`status-dot ${isQdrantReady ? 'online' : 'offline'}`} />
+                {isQdrantReady ? 'Connected' : 'Pending Engine'}
+              </span>
+            </div>
+
+            {!isAiServiceOnline && (
+              <div style={{
+                marginTop: '4px',
+                padding: '8px 10px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--bg-subtle)',
+                fontSize: '0.72rem',
+                color: 'var(--text-muted)',
+                lineHeight: 1.5
+              }}>
+                To enable live embeddings & reranking, launch the AI service:
+                <code style={{ display: 'block', marginTop: '4px', color: 'var(--atlyx-accent)', fontFamily: 'var(--font-mono)' }}>
+                  python ai-service/app.py
+                </code>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
-      {/* AI Service Offline Warning Banner */}
-      {!isAiServiceOnline && !loading && (
-        <div style={{
-          backgroundColor: 'var(--warning-bg)',
-          border: '1px solid var(--warning-border)',
-          color: 'var(--warning)',
-          padding: '10px 16px',
-          borderRadius: 'var(--radius-sm)',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '0.8125rem'
-        }}>
-          <AlertCircle size={16} style={{ flexShrink: 0 }} />
-          <span>
-            <strong>AI Service Unreachable:</strong> Start the Python service in terminal with <code>cd ai-service; python app.py</code> to enable document uploads and grounded chat.
-          </span>
-        </div>
-      )}
-
-      {/* Navigation Tabs */}
-      <nav className="nav-tabs">
-        <button
-          className={`nav-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          <LayoutDashboard size={15} />
-          <span>Dashboard</span>
-        </button>
-
-        <button
-          className={`nav-tab-btn ${activeTab === 'domains' ? 'active' : ''}`}
-          onClick={() => setActiveTab('domains')}
-        >
-          <Layers size={15} />
-          <span>Domains ({domains.length})</span>
-        </button>
-
-        <button
-          className={`nav-tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
-          onClick={() => setActiveTab('upload')}
-        >
-          <UploadCloud size={15} />
-          <span>Ingestion</span>
-        </button>
-
-        <button
-          className={`nav-tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
-          onClick={() => setActiveTab('chat')}
-        >
-          <MessageSquare size={15} />
-          <span>Grounded Chat</span>
-        </button>
-
-        <button
-          className={`nav-tab-btn ${activeTab === 'documents' ? 'active' : ''}`}
-          onClick={() => setActiveTab('documents')}
-        >
-          <FileText size={15} />
-          <span>Repository ({documents.length})</span>
-        </button>
-      </nav>
-
-      {/* Main View Display */}
-      <main>
-        {activeTab === 'dashboard' && (
-          <Dashboard
-            health={health}
+      {/* Main View Area */}
+      <main className="main-content">
+        {activeTab === 'overview' && (
+          <LandingPage
             domains={domains}
             documents={documents}
+            health={health}
             onNavigate={(tab) => setActiveTab(tab)}
-          />
-        )}
-
-        {activeTab === 'domains' && (
-          <DomainsManager
-            domains={domains}
-            onRefreshDomains={loadData}
-          />
-        )}
-
-        {activeTab === 'upload' && (
-          <DocumentUpload
-            domains={domains}
-            onUploadSuccess={loadData}
+            onStartChatWithPrompt={handleStartChatWithPrompt}
           />
         )}
 
         {activeTab === 'chat' && (
           <ChatInterface
             domains={domains}
+            initialPrompt={prefilledPrompt}
           />
         )}
 
-        {activeTab === 'documents' && (
-          <DocumentList
+        {activeTab === 'hub' && (
+          <KnowledgeHub
+            domains={domains}
             documents={documents}
             onRefresh={loadData}
           />
