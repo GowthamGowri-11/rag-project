@@ -12,8 +12,7 @@ import {
   XCircle,
   Target,
   Filter,
-  Layers3,
-  Sparkles
+  Layers3
 } from 'lucide-react';
 
 export default function Dashboard({ health, domains, documents, onNavigate }) {
@@ -261,7 +260,7 @@ export default function Dashboard({ health, domains, documents, onNavigate }) {
             alignItems: 'center',
             gap: '10px'
           }}>
-            <Sparkles size={20} color="var(--atlyx-accent)" />
+            <img src="/atlyx-logo.png" alt="" className="inline-logo-icon" />
             Intelligent Processing Pipeline
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>

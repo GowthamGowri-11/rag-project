@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShieldCheck, 
-  Sparkles, 
   MessageSquare, 
   Layers, 
   Database, 
@@ -72,29 +71,18 @@ export default function App() {
   const isAiServiceOnline = health?.ai_service?.status === 'HEALTHY';
   const isQdrantReady = !!health?.ai_service?.qdrant?.is_connected;
 
-  const handleStartChatWithPrompt = (prompt) => {
-    setPrefilledPrompt(prompt);
-    setActiveTab('chat');
-  };
-
   const handleNewChat = () => {
     setPrefilledPrompt('');
     setActiveTab('chat');
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${activeTab === 'chat' ? 'chat-active' : ''}`}>
       {/* Top Sleek Navigation Bar */}
       <header className="navbar">
         {/* Left: Brand Identity */}
         <div className="nav-brand" onClick={() => setActiveTab('overview')}>
-          <div className="brand-icon-box">
-            <img src="/atlyx-logo.png" alt="ATLYX-AI" className="brand-logo-img" />
-          </div>
-          <div className="brand-text">
-            <span className="brand-name">ATLYX-AI</span>
-            <span className="brand-badge">Strict Grounding</span>
-          </div>
+          <img src="/atlyx-logo.png?v=3" alt="ATLYX AI" className="nav-brand-img" />
         </div>
 
         {/* Center: Navigation Control */}
@@ -104,7 +92,7 @@ export default function App() {
             onClick={() => setActiveTab('overview')}
           >
             <Compass size={14} />
-            <span>Overview</span>
+            <span>Home</span>
           </button>
 
           <button
@@ -112,7 +100,7 @@ export default function App() {
             onClick={() => setActiveTab('chat')}
           >
             <MessageSquare size={14} />
-            <span>ATLYX Chat</span>
+            <span>AI Chat</span>
           </button>
 
           <button
@@ -155,9 +143,9 @@ export default function App() {
         {/* Service Status Drawer Dropdown */}
         {showStatusDrawer && (
           <div className="service-status-drawer" ref={drawerRef}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-default)', paddingBottom: '10px' }}>
-              <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                System Architecture Status
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-default)', paddingBottom: '8px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                System Status
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button
@@ -252,23 +240,23 @@ export default function App() {
       </header>
 
       {/* Main View Area */}
-      <main className="main-content">
+      <main className={`main-content ${activeTab === 'chat' ? 'main-content--chat' : ''}`}>
         {activeTab === 'overview' && (
           <LandingPage
             domains={domains}
             documents={documents}
             health={health}
             onNavigate={(tab) => setActiveTab(tab)}
-            onStartChatWithPrompt={handleStartChatWithPrompt}
           />
         )}
 
-        {activeTab === 'chat' && (
+        {/* Keep chat mounted so conversation survives Home / Hub navigation */}
+        <div className={activeTab === 'chat' ? 'chat-panel chat-panel--visible' : 'chat-panel chat-panel--hidden'}>
           <ChatInterface
             domains={domains}
             initialPrompt={prefilledPrompt}
           />
-        )}
+        </div>
 
         {activeTab === 'hub' && (
           <KnowledgeHub

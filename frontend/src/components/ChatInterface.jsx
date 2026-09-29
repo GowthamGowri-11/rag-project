@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Sparkles, 
   Send, 
   Trash2, 
   Copy, 
@@ -10,10 +9,7 @@ import {
   ShieldCheck, 
   AlertCircle, 
   Cpu, 
-  Database, 
   ExternalLink,
-  Layers,
-  Clock,
   ArrowUp,
   Info,
   Mic,
@@ -39,25 +35,110 @@ function cleanAnswerText(text) {
     .trim();
 }
 
+/**
+ * Renders assistant answers with proper typography.
+ * Topic markers like ***Title:** / **Title:** become block-letter headings.
+ */
+function FormattedAnswer({ text }) {
+  if (!text) return null;
+
+  const normalized = text.replace(/\r\n/g, '\n');
+  const topicRe = /\*{2,3}\s*([^*\n]+?):\s*\*{0,2}/g;
+  const topics = [];
+  let match;
+  while ((match = topicRe.exec(normalized)) !== null) {
+    topics.push({
+      title: match[1].replace(/\*/g, '').trim(),
+      index: match.index,
+      end: match.index + match[0].length
+    });
+  }
+
+  const stripStars = (s) => s.replace(/\*{1,3}/g, '').replace(/\s{2,}/g, ' ').trim();
+
+  if (topics.length === 0) {
+    const paras = stripStars(normalized).split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+    if (paras.length <= 1) {
+      return <p className="answer-paragraph">{paras[0] || stripStars(normalized)}</p>;
+    }
+    return paras.map((p, i) => (
+      <p key={i} className="answer-paragraph">{p}</p>
+    ));
+  }
+
+  const nodes = [];
+  const intro = stripStars(normalized.slice(0, topics[0].index));
+  if (intro) {
+    nodes.push(
+      <p key="intro" className="answer-paragraph">{intro}</p>
+    );
+  }
+
+  topics.forEach((topic, i) => {
+    const bodyEnd = i + 1 < topics.length ? topics[i + 1].index : normalized.length;
+    const body = stripStars(normalized.slice(topic.end, bodyEnd));
+    nodes.push(
+      <div key={`topic-${i}`} className="answer-topic">
+        <h4 className="answer-topic-title">{topic.title.toUpperCase()}</h4>
+        {body ? <p className="answer-paragraph">{body}</p> : null}
+      </div>
+    );
+  });
+
+  return <>{nodes}</>;
+}
+
+const CHAT_STORAGE_KEY = 'atlyx_chat_session_v1';
+
+const DEFAULT_WELCOME = {
+  id: 'welcome',
+  role: 'assistant',
+  text: 'Hello. I am your grounded AI assistant. I answer exclusively using verified knowledge indexed in your vector store. If evidence does not exist for your query, I will refuse rather than speculate.',
+  isWelcome: true
+};
+
+function loadChatSession() {
+  try {
+    const raw = sessionStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.messages) || parsed.messages.length === 0) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveChatSession(payload) {
+  try {
+    sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore quota / private-mode failures
+  }
+}
+
+function clearChatSession() {
+  try {
+    sessionStorage.removeItem(CHAT_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function ChatInterface({ domains = [], initialPrompt = '' }) {
+  const saved = loadChatSession();
+
   const [queryText, setQueryText] = useState(initialPrompt || '');
   const [loading, setLoading] = useState(false);
-  const [selectedDomain, setSelectedDomain] = useState('');
-  const [selectedStrategy, setSelectedStrategy] = useState('auto');
+  const [selectedDomain, setSelectedDomain] = useState(saved?.selectedDomain || '');
+  const [selectedStrategy, setSelectedStrategy] = useState(saved?.selectedStrategy || 'auto');
   const [copiedId, setCopiedId] = useState(null);
   const [expandedTelemetry, setExpandedTelemetry] = useState({});
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [progressPercent, setProgressPercent] = useState(15);
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      text: 'Hello. I am your grounded AI assistant. I answer exclusively using verified knowledge indexed in your vector store. If evidence does not exist for your query, I will refuse rather than speculate.',
-      isWelcome: true
-    }
-  ]);
+  const [messages, setMessages] = useState(() => saved?.messages || [DEFAULT_WELCOME]);
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -125,6 +206,16 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
     scrollToBottom();
   }, [messages, loading, activeStepIndex]);
 
+  // Persist chat for the browser session (survives tab switches & refresh)
+  useEffect(() => {
+    saveChatSession({
+      messages,
+      selectedDomain,
+      selectedStrategy,
+      updatedAt: Date.now()
+    });
+  }, [messages, selectedDomain, selectedStrategy]);
+
   // Progressive animation through execution stages during query
   useEffect(() => {
     let interval;
@@ -132,7 +223,8 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
       setActiveStepIndex(0);
       setProgressPercent(15);
 
-      const stepDelays = [400, 1100, 2000, 3200, 4800];
+      // Faster animation timing to match optimized retrieval (reduced by ~40%)
+      const stepDelays = [250, 600, 1100, 1800, 2700];
       const stepPercents = [30, 50, 70, 85, 95];
 
       const timeouts = stepDelays.map((delay, index) => 
@@ -149,14 +241,23 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
   }, [loading]);
 
   const handleClear = () => {
-    setMessages([
+    const resetMessages = [
       {
-        id: 'welcome_reset',
+        id: `welcome_reset_${Date.now()}`,
         role: 'assistant',
         text: 'Conversation history cleared. How can I help you today with your grounded knowledge base?',
         isWelcome: true
       }
-    ]);
+    ];
+    setMessages(resetMessages);
+    setExpandedTelemetry({});
+    clearChatSession();
+    saveChatSession({
+      messages: resetMessages,
+      selectedDomain,
+      selectedStrategy,
+      updatedAt: Date.now()
+    });
   };
 
   const copyToClipboard = (id, text) => {
@@ -248,19 +349,8 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
     <div className="chat-workspace page-fade-in">
       {/* Top Header Bar */}
       <div className="chat-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div className="chat-avatar-atlyx">
-            <img src="/atlyx-logo.png" alt="ATLYX" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              ATLYX Grounded Assistant
-            </div>
-          </div>
-        </div>
-
         {/* Filter Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
           <select 
             className="filter-select"
             value={selectedDomain}
@@ -308,38 +398,13 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
             );
           }
 
-          // Welcome screen state
-          if (msg.isWelcome && messages.length === 1) {
+          // Welcome screen — only when chat is empty; skip once conversation starts
+          if (msg.isWelcome) {
+            if (messages.length !== 1) return null;
             return (
               <div key={msg.id} className="chat-welcome">
-                <div className="welcome-icon-box">
-                  <Sparkles size={28} />
-                </div>
-                <h2 className="welcome-heading">How can I assist your research?</h2>
-                <p className="welcome-desc">
-                  Ask questions across your uploaded knowledge documents. If verified evidence is not present in the vector store, queries are safely rejected by our Strict Evidence Gate.
-                </p>
-
-                <div className="welcome-chips">
-                  <button 
-                    className="welcome-chip"
-                    onClick={() => handleSend('How does strict evidence gate guarantee zero hallucination?')}
-                  >
-                    Zero Hallucination Contract
-                  </button>
-                  <button 
-                    className="welcome-chip"
-                    onClick={() => handleSend('What documents and domains are currently indexed?')}
-                  >
-                    Indexed Repository Overview
-                  </button>
-                  <button 
-                    className="welcome-chip"
-                    onClick={() => handleSend('Explain quantum gravity and string theory')}
-                  >
-                    Test Out-of-Domain Refusal
-                  </button>
-                </div>
+                <img src="/atlyx-logo.png?v=3" alt="ATLYX AI" className="welcome-brand-img" />
+                <p className="welcome-desc">I'm here to assist you.</p>
               </div>
             );
           }
@@ -351,13 +416,13 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
           return (
             <div key={msg.id} className="msg-row assistant">
               <div className="chat-avatar-atlyx" style={{ flexShrink: 0, marginTop: '2px' }}>
-                <img src="/atlyx-logo.png" alt="ATLYX" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                <img src="/atlyx-logo.png?v=3" alt="ATLYX" />
               </div>
 
               <div className="assistant-content">
                 {/* Assistant Text */}
                 <div className="assistant-text-box">
-                  {msg.text}
+                  <FormattedAnswer text={msg.text} />
                 </div>
 
                 {/* Telemetry & Sources Inspection Widget */}
@@ -409,12 +474,12 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
                     {isExpanded && (
                       <div className="telemetry-drawer-body">
                         {msg.sources && msg.sources.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                             {msg.sources.map((src, i) => (
                               <div key={i} className="source-item">
                                 <div className="source-header">
                                   <div className="source-name">
-                                    <Database size={13} color="var(--atlyx-accent)" />
+                                    <img src="/atlyx-logo.png?v=3" alt="" />
                                     <span>{src.document_name || 'Document Chunk'}</span>
                                   </div>
                                   {src.relevance_score && (
@@ -469,17 +534,17 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
         {loading && (
           <div className="msg-row assistant">
             <div className="chat-avatar-atlyx" style={{ flexShrink: 0, marginTop: '2px' }}>
-              <img src="/atlyx-logo.png" alt="ATLYX" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+              <img src="/atlyx-logo.png?v=3" alt="ATLYX" />
             </div>
 
             <div className="assistant-content">
               <div className="pipeline-execution-widget">
                 <div className="pipeline-widget-header">
                   <div className="pipeline-widget-title">
-                    <Cpu size={14} color="var(--atlyx-accent)" />
+                    <Cpu size={12} color="var(--atlyx-accent)" />
                     <span>Adaptive RAG Execution Pipeline</span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--atlyx-accent)', fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--atlyx-accent)', fontFamily: 'var(--font-mono)' }}>
                     Processing Query...
                   </span>
                 </div>
@@ -500,12 +565,10 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
                         key={idx} 
                         className={`pipeline-step ${isDone ? 'completed' : ''} ${isActive ? 'active' : ''} ${isPending ? 'pending' : ''}`}
                       >
-                        <div className={`step-indicator ${isDone ? 'done' : (isActive ? 'spinner' : 'dot')}`}>
-                          {isDone ? <Check size={12} /> : (isActive ? <Clock size={12} /> : null)}
+                        <div className={`step-indicator ${isDone || isActive ? 'done' : 'dot'}`}>
+                          {(isDone || isActive) ? <Check size={10} /> : null}
                         </div>
-
-                        <div>{stage.label}</div>
-                        <div className="step-detail">{stage.detail}</div>
+                        <div className="pipeline-step-label">{stage.label}</div>
                       </div>
                     );
                   })}
@@ -557,9 +620,9 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
         <div className="chat-input-box">
           <textarea
             ref={textareaRef}
-            rows={2}
+            rows={1}
             className="chat-textarea"
-            placeholder="Message ATLYX Grounded Assistant... (Shift+Enter for newline)"
+            placeholder="Message ATLYX-AI..."
             value={queryText}
             onChange={(e) => setQueryText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -567,53 +630,22 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
           />
 
           <div className="chat-input-bottom-bar">
-            <div className="input-tags">
-              <span className="tag-badge">
-                <Layers size={11} color="var(--atlyx-accent)" />
-                <span>{selectedDomain ? `Domain: ${selectedDomain}` : 'All Partitions'}</span>
-              </span>
+            <div className="input-tags" />
 
-              <span className="tag-badge">
-                <Cpu size={11} color="var(--indigo)" />
-                <span>Strategy: {selectedStrategy}</span>
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {/* Voice Input Controls */}
               {isVoiceSupported && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'relative' }}>
                   {/* Language Selector */}
                   <div style={{ position: 'relative' }} ref={languageSelectorRef}>
                     <button
                       type="button"
                       onClick={() => setShowLanguageSelector(!showLanguageSelector)}
-                      style={{
-                        background: 'var(--bg-subtle)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-full)',
-                        padding: '6px 10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: 'var(--text-primary)',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#ffffff';
-                        e.currentTarget.style.borderColor = 'var(--border-strong)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'var(--bg-subtle)';
-                        e.currentTarget.style.borderColor = 'var(--border-default)';
-                      }}
+                      className="input-ctrl-btn"
                       title="Select voice language"
                       aria-label="Select voice language"
                     >
-                      <Globe size={13} />
+                      <Globe size={12} />
                       <span>{VOICE_LANGUAGES.find(l => l.code === selectedLanguage)?.shortName || 'EN'}</span>
                     </button>
 
@@ -688,42 +720,15 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
                     type="button"
                     onClick={toggleListening}
                     disabled={loading}
-                    style={{
-                      background: isListening ? 'var(--rose)' : 'var(--bg-subtle)',
-                      border: isListening ? '1px solid var(--rose)' : '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-full)',
-                      padding: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s ease',
-                      opacity: loading ? 0.5 : 1
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!loading && !isListening) {
-                        e.currentTarget.style.background = '#ffffff';
-                        e.currentTarget.style.borderColor = 'var(--border-strong)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loading && !isListening) {
-                        e.currentTarget.style.background = 'var(--bg-subtle)';
-                        e.currentTarget.style.borderColor = 'var(--border-default)';
-                      }
-                    }}
+                    className={`input-ctrl-btn input-ctrl-btn--icon ${isListening ? 'listening' : ''}`}
                     title={isListening ? 'Stop voice input' : 'Start voice input'}
                     aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
                     aria-pressed={isListening}
                   >
                     {isListening ? (
-                      <div style={{
-                        animation: 'pulse 1.5s ease-in-out infinite'
-                      }}>
-                        <Mic size={16} color="#ffffff" />
-                      </div>
+                      <Mic size={14} color="#ffffff" />
                     ) : (
-                      <Mic size={16} color="var(--text-secondary)" />
+                      <Mic size={14} color="var(--text-secondary)" />
                     )}
                   </button>
 
@@ -765,7 +770,7 @@ export default function ChatInterface({ domains = [], initialPrompt = '' }) {
                 disabled={!queryText.trim() || loading}
                 title="Send message"
               >
-                <ArrowUp size={16} />
+                <ArrowUp size={14} />
               </button>
             </div>
           </div>

@@ -1,36 +1,27 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, 
-  Sparkles, 
-  UploadCloud, 
   Database, 
   Layers, 
-  FileText, 
-  ArrowRight, 
   Cpu, 
   GitBranch, 
-  Lock,
   Play,
   CheckCircle2,
   Sliders,
-  ChevronRight,
-  Activity,
   FileCheck,
   Search,
   Filter,
-  Check,
-  AlertTriangle,
-  RotateCcw
+  AlertTriangle
 } from 'lucide-react';
 
-export default function LandingPage({ domains = [], documents = [], health, onNavigate, onStartChatWithPrompt }) {
+export default function LandingPage({ domains = [], documents = [], health = null, onNavigate }) {
   const [activeMilestone, setActiveMilestone] = useState(0);
   const [isSimulatingRoadmap, setIsSimulatingRoadmap] = useState(false);
   const [activePlaygroundScenario, setActivePlaygroundScenario] = useState('grounded');
 
   const totalChunks = domains.reduce((acc, d) => acc + (d.chunk_count || 0), 0);
-  const isQdrantReady = health?.ai_service?.qdrant?.is_connected;
   const isAiServiceOnline = health?.ai_service?.status === 'HEALTHY';
+  const isQdrantReady = !!health?.ai_service?.qdrant?.is_connected;
 
   // 6 Intelligence Processing Stages
   const roadmapStages = [
@@ -97,14 +88,14 @@ export default function LandingPage({ domains = [], documents = [], health, onNa
 
     let current = 0;
     const interval = setInterval(() => {
-      current++;
-      if (current >= roadmapStages.length) {
+      current = (current + 1) % roadmapStages.length;
+      setActiveMilestone(current);
+      // Complete one full loop (back to 0) then stop
+      if (current === 0) {
         clearInterval(interval);
-        setTimeout(() => setIsSimulatingRoadmap(false), 500);
-      } else {
-        setActiveMilestone(current);
+        setTimeout(() => setIsSimulatingRoadmap(false), 400);
       }
-    }, 900);
+    }, 4000);
   };
 
   // Playground Test Scenarios
@@ -161,43 +152,59 @@ export default function LandingPage({ domains = [], documents = [], health, onNa
       {/* Hero Section */}
       <section className="hero-grid">
         <div className="hero-left">
-          <div className="hero-pill">
-            <span className="pulse-beacon" />
-            <span>Strict Evidence Gate • Zero Hallucination Guarantee</span>
+          <div className="hero-brand-row">
+            <img src="/atlyx-logo.png?v=3" alt="" className="hero-mark" />
+            <span className="hero-brand-label">ATLYX-AI</span>
           </div>
 
+          <div className="hero-rule" aria-hidden="true" />
+
           <h1 className="hero-title">
-            Intelligence Grounded in <em>Truth</em>, Not Hallucination.
+            Intelligence Grounded in <em>Truth</em>,
+            <br />
+            Not Hallucination.
           </h1>
 
           <p className="hero-subtitle">
-            ATLYX-AI is an enterprise retrieval-augmented generation engine engineered with dynamic domain isolation and cross-encoder evidence verification. When verified evidence is absent, our system refuses rather than speculating.
+            An enterprise retrieval-augmented generation engine with dynamic domain isolation
+            and cross-encoder evidence verification. When verified evidence is absent,
+            ATLYX-AI refuses rather than speculating — delivering answers you can trust.
           </p>
 
-          <div className="hero-actions">
-            <button 
-              className="btn-atlyx-primary"
-              onClick={() => onNavigate('chat')}
-            >
-              <Sparkles size={16} />
-              <span>Launch ATLYX Chat</span>
-            </button>
+          <ul className="hero-proofs">
+            <li>
+              <ShieldCheck size={15} />
+              <span>Strict evidence gate</span>
+            </li>
+            <li>
+              <Layers size={15} />
+              <span>Domain isolation</span>
+            </li>
+            <li>
+              <Search size={15} />
+              <span>Hybrid retrieval</span>
+            </li>
+          </ul>
 
-            <button 
-              className="btn-atlyx-secondary"
-              onClick={() => onNavigate('hub')}
-            >
-              <UploadCloud size={16} />
-              <span>Manage Knowledge Library</span>
-            </button>
-          </div>
+          {typeof onNavigate === 'function' && (
+            <div className="hero-actions">
+              <button
+                type="button"
+                className="btn-atlyx-primary"
+                onClick={() => onNavigate('chat')}
+              >
+                <img src="/atlyx-logo.png?v=3" alt="" className="inline-logo-icon" />
+                <span>Open AI Chat</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Hero Right: Intelligence Pipeline Visualizer */}
         <div className="pipeline-visualizer-card">
           <div className="pipeline-header">
             <div className="pipeline-title">
-              <Sparkles size={16} color="var(--atlyx-accent)" />
+              <img src="/atlyx-logo.png" alt="" className="inline-logo-icon" />
               <span>Neural Processing Pipeline</span>
             </div>
 
@@ -262,48 +269,54 @@ export default function LandingPage({ domains = [], documents = [], health, onNa
         </div>
       </section>
 
-      {/* Unified Intelligence Metrics */}
-      <section className="telemetry-strip">
-        <div className="telemetry-item">
+      {/* Intelligence Metrics — four separate cards with live platform data */}
+      <section className="telemetry-strip" aria-label="Platform metrics">
+        <article className="telemetry-item">
           <div className="telemetry-label">
             <Database size={13} color="var(--indigo)" />
             <span>Knowledge Repository</span>
           </div>
           <div className="telemetry-value">{documents.length}</div>
           <div className="telemetry-desc">{totalChunks.toLocaleString()} semantic segments indexed</div>
-        </div>
+        </article>
 
-        <div className="telemetry-item">
+        <article className="telemetry-item">
           <div className="telemetry-label">
             <Layers size={13} color="var(--atlyx-accent)" />
             <span>Neural Partitions</span>
           </div>
           <div className="telemetry-value">{domains.length}</div>
           <div className="telemetry-desc">Context-isolated domain spaces</div>
-        </div>
+        </article>
 
-        <div className="telemetry-item">
+        <article className="telemetry-item">
           <div className="telemetry-label">
             <Cpu size={13} color="var(--emerald)" />
-            <span>Retrieval Accuracy</span>
+            <span>AI Engine</span>
           </div>
-          <div className="telemetry-value" style={{ fontSize: '1.45rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="status-dot online" />
-            <span>98.7%</span>
+          <div className={`telemetry-value telemetry-value--status ${isAiServiceOnline ? '' : 'is-offline'}`}>
+            <span className={`status-dot ${isAiServiceOnline ? 'online' : 'offline'}`} />
+            <span>{isAiServiceOnline ? 'Healthy' : 'Offline'}</span>
           </div>
-          <div className="telemetry-desc">Cross-encoder precision scoring</div>
-        </div>
+          <div className="telemetry-desc">
+            {isAiServiceOnline ? 'Python AI service on port 8000' : 'Start ai-service to enable retrieval'}
+          </div>
+        </article>
 
-        <div className="telemetry-item">
+        <article className="telemetry-item">
           <div className="telemetry-label">
             <ShieldCheck size={13} color="var(--amber)" />
             <span>Grounding Status</span>
           </div>
-          <div className="telemetry-value" style={{ fontSize: '1.45rem', color: 'var(--emerald)' }}>
-            Enforced
+          <div className={`telemetry-value telemetry-value--ok ${isQdrantReady ? '' : 'is-offline'}`}>
+            {isQdrantReady ? 'Enforced' : 'Pending'}
           </div>
-          <div className="telemetry-desc">Zero hallucination guarantee active</div>
-        </div>
+          <div className="telemetry-desc">
+            {isQdrantReady
+              ? 'Zero hallucination guarantee active'
+              : 'Waiting for Qdrant vector store connection'}
+          </div>
+        </article>
       </section>
 
       {/* ==========================================================================
@@ -358,7 +371,7 @@ export default function LandingPage({ domains = [], documents = [], health, onNa
           <div className="roadmap-detail-card">
             <div>
               <div className="detail-eyebrow">
-                <Sparkles size={13} />
+                <img src="/atlyx-logo.png" alt="" className="inline-logo-icon inline-logo-icon--sm" />
                 <span>Stage {roadmapStages[activeMilestone].number} Deep Dive</span>
               </div>
 
@@ -401,21 +414,11 @@ export default function LandingPage({ domains = [], documents = [], health, onNa
           INTERACTIVE QUERY TESTING PLAYGROUND
           ========================================================================== */}
       <section className="playground-section">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <h2 className="section-headline">Live Query Testing Playground</h2>
-            <p className="section-subhead">
-              Experience how the system handles verified queries, out-of-domain requests, and domain-isolated retrieval in real-time.
-            </p>
-          </div>
-
-          <button 
-            className="btn-atlyx-secondary"
-            onClick={() => onNavigate('chat')}
-          >
-            <span>Launch Full Chat Interface</span>
-            <ArrowRight size={13} />
-          </button>
+        <div>
+          <h2 className="section-headline">Live Query Testing Playground</h2>
+          <p className="section-subhead">
+            Experience how the system handles verified queries, out-of-domain requests, and domain-isolated retrieval in real-time.
+          </p>
         </div>
 
         <div className="playground-card">

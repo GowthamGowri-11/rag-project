@@ -35,9 +35,9 @@ class AppConfig:
 
     # Pipeline thresholds
     EVIDENCE_CONFIDENCE_THRESHOLD: float = float(os.getenv("EVIDENCE_CONFIDENCE_THRESHOLD", "0.45"))
-    TOP_K_CANDIDATES: int = int(os.getenv("TOP_K_CANDIDATES", "15"))
+    TOP_K_CANDIDATES: int = int(os.getenv("TOP_K_CANDIDATES", "10"))  # Reduced from 15 to 10 for faster retrieval
 
-    TOP_K_RERANKED: int = int(os.getenv("TOP_K_RERANKED", "7"))
+    TOP_K_RERANKED: int = int(os.getenv("TOP_K_RERANKED", "5"))  # Reduced from 7 to 5 for faster response
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")

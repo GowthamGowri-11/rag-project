@@ -30,9 +30,9 @@ class BGERerankerService:
             )
             self._is_native_loaded = False
 
-    def rerank(self, query: str, candidates: list[dict[str, Any]], top_n: int = 7) -> list[dict[str, Any]]:
+    def rerank(self, query: str, candidates: list[dict[str, Any]], top_n: int = 5) -> list[dict[str, Any]]:
         """
-        Reranks a list of candidate chunks (typically top 20-50) using the transformer reranker.
+        Reranks a list of candidate chunks (typically top 10-15) using the transformer reranker.
         Attaches 'rerank_score' to each chunk and returns the top_n results.
         """
         if not candidates:
@@ -42,11 +42,11 @@ class BGERerankerService:
             raise RuntimeError("BGE Reranker v2-M3 model is UNAVAILABLE. Heuristic fallback is forbidden in production.")
 
         try:
-            # On CPU, evaluating top 15 candidates prevents 60s+ timeouts while retaining top-rank precision
-            eval_candidates = candidates[:15] if self.device == "cpu" else candidates
+            # On CPU, evaluate top 10 candidates for faster response while maintaining quality
+            eval_candidates = candidates[:10] if self.device == "cpu" else candidates[:15]
             pairs = [[query, c["text"]] for c in eval_candidates]
             try:
-                scores = self._reranker.compute_score(pairs, max_length=384)
+                scores = self._reranker.compute_score(pairs, max_length=256)  # Reduced max_length for speed
             except TypeError:
                 scores = self._reranker.compute_score(pairs)
 
